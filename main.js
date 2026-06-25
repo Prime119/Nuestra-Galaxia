@@ -348,8 +348,7 @@ function closeModal() {
 // Las estrellas salen del centro y forman un corazón; se mantiene ~1s y luego
 // se desvanece con una explosión tipo supernova (NO afecta a la galaxia).
 const hearts = [];
-const flashes = [];
-const HEART = { form: 1.4, hold: 3.0, boom: 1.5, y: 5.5 };
+const HEART = { form: 3.2, hold: 3.0, y: 6.0, scale: 0.16 };
 
 function easeOut(x) {
   return 1 - Math.pow(1 - x, 3);
@@ -380,9 +379,9 @@ function spawnHeart() {
     const fill = Math.sqrt(Math.random());
     const hx = 16 * Math.pow(Math.sin(t), 3);
     const hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-    const lx = hx * fill * 0.085;
-    const ly = hy * fill * 0.085;
-    const lz = (Math.random() - 0.5) * 0.12;
+    const lx = hx * fill * HEART.scale;
+    const ly = hy * fill * HEART.scale;
+    const lz = (Math.random() - 0.5) * 0.18;
     // objetivo (en el mundo): el corazón flotando ARRIBA de la galaxia
     v.copy(center).addScaledVector(right, lx).addScaledVector(up, ly).addScaledVector(normal, lz);
     target[i3] = v.x;
@@ -404,7 +403,7 @@ function spawnHeart() {
     dir[i3 + 1] = dy / len + (Math.random() - 0.5) * 0.5;
     dir[i3 + 2] = dz / len + (Math.random() - 0.5) * 0.5;
 
-    delay[i] = Math.random() * 0.45;
+    delay[i] = Math.random() * 1.0;
 
     tmp.copy(pinkA).lerp(pinkB, Math.random());
     colors[i3] = tmp.r;
@@ -430,21 +429,24 @@ function spawnHeart() {
   hearts.push({ obj, born: elapsedTime, start, target, dir, delay, n, boomed: false, center });
 }
 
-function spawnFlash() {
-  const s = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: starTexture,
-      color: new THREE.Color("#ffd9ec"),
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      opacity: 0.9,
-    })
-  );
-  s.position.set(0, HEART.y, 0);
-  s.scale.set(0.5, 0.5, 1);
-  scene.add(s);
-  flashes.push({ obj: s, born: elapsedTime, dur: 0.9 });
+const flashEl = document.getElementById("flash");
+let flash = null;
+function startFlash() {
+  flash = { born: elapsedTime };
+}
+function updateFlash(elapsed) {
+  if (!flash) return;
+  const age = elapsed - flash.born;
+  const up = 0.4, full = 0.4, down = 1.9; // sube a blanco, se mantiene y se desvanece
+  let o;
+  if (age < up) o = age / up;
+  else if (age < up + full) o = 1;
+  else o = Math.max(0, 1 - (age - up - full) / down);
+  flashEl.style.opacity = String(o);
+  if (age > up + full + down) {
+    flashEl.style.opacity = "0";
+    flash = null;
+  }
 }
 
 function updateHearts(elapsed) {
@@ -458,50 +460,29 @@ function updateHearts(elapsed) {
       // formación: suben del centro y forman el corazón arriba; luego se mantiene
       for (let j = 0; j < h.n; j++) {
         const j3 = j * 3;
-        const f = easeOut(Math.min(1, Math.max(0, (age - h.delay[j]) / (HEART.form * 0.7))));
+        const f = easeOut(Math.min(1, Math.max(0, (age - h.delay[j]) / (HEART.form * 0.75))));
         pos[j3] = h.start[j3] + (h.target[j3] - h.start[j3]) * f;
         pos[j3 + 1] = h.start[j3 + 1] + (h.target[j3 + 1] - h.start[j3 + 1]) * f;
         pos[j3 + 2] = h.start[j3 + 2] + (h.target[j3 + 2] - h.start[j3 + 2]) * f;
       }
       h.obj.material.opacity = 1;
     } else {
-      // explosión tipo supernova
+      // estalla en una EXPLOSIÓN DE LUZ que cubre toda la pantalla
       if (!h.boomed) {
         h.boomed = true;
-        spawnFlash();
+        startFlash();
       }
-      const k = (age - boomStart) / HEART.boom;
-      const push = Math.pow(k, 1.4) * 7;
-      for (let j = 0; j < h.n; j++) {
-        const j3 = j * 3;
-        pos[j3] = h.target[j3] + h.dir[j3] * push;
-        pos[j3 + 1] = h.target[j3 + 1] + h.dir[j3 + 1] * push;
-        pos[j3 + 2] = h.target[j3 + 2] + h.dir[j3 + 2] * push;
-      }
+      // el corazón se funde dentro de la luz
+      const k = (age - boomStart) / 0.5;
       h.obj.material.opacity = Math.max(0, 1 - k);
     }
     h.obj.geometry.attributes.position.needsUpdate = true;
 
-    if (age > boomStart + HEART.boom) {
+    if (age > boomStart + 0.9) {
       scene.remove(h.obj);
       h.obj.geometry.dispose();
       h.obj.material.dispose();
       hearts.splice(i, 1);
-    }
-  }
-
-  // destello de la supernova
-  for (let i = flashes.length - 1; i >= 0; i--) {
-    const fl = flashes[i];
-    const age = elapsed - fl.born;
-    const k = age / fl.dur;
-    const s = 0.5 + easeOut(Math.min(1, k)) * 7;
-    fl.obj.scale.set(s, s, 1);
-    fl.obj.material.opacity = Math.max(0, 0.9 * (1 - k));
-    if (age > fl.dur) {
-      scene.remove(fl.obj);
-      fl.obj.material.dispose();
-      flashes.splice(i, 1);
     }
   }
 }
@@ -538,6 +519,7 @@ function animate() {
   // Astros y corazones
   astros.update(elapsed, delta);
   updateHearts(elapsed);
+  updateFlash(elapsed);
 
   controls.update();
   composer.render();
