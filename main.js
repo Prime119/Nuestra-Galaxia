@@ -159,10 +159,10 @@ function makeCoreGlow() {
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,250,235,1)");
-  g.addColorStop(0.2, "rgba(255,225,170,0.9)");
-  g.addColorStop(0.45, "rgba(255,170,200,0.5)");
-  g.addColorStop(0.75, "rgba(160,90,200,0.18)");
+  g.addColorStop(0, "rgba(255,250,235,0.5)");
+  g.addColorStop(0.2, "rgba(255,225,170,0.36)");
+  g.addColorStop(0.45, "rgba(255,170,200,0.16)");
+  g.addColorStop(0.75, "rgba(160,90,200,0.05)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -177,7 +177,7 @@ function makeCoreGlow() {
       depthWrite: false,
     })
   );
-  sprite.scale.set(7, 7, 1);
+  sprite.scale.set(4.5, 4.5, 1);
   return sprite;
 }
 const coreGlow = makeCoreGlow();
@@ -345,34 +345,64 @@ function closeModal() {
 }
 
 // --- Corazón de estrellas rosa (al tocar el centro) -------------------------
+// Las estrellas salen del centro y forman un corazón; se mantiene ~1s y luego
+// se desvanece con una explosión tipo supernova (NO afecta a la galaxia).
 const hearts = [];
-function makeHeartPoints() {
-  const n = 600;
-  const positions = new Float32Array(n * 3);
+const flashes = [];
+const HEART = { form: 1.3, hold: 1.0, boom: 1.4 };
+
+function easeOut(x) {
+  return 1 - Math.pow(1 - x, 3);
+}
+
+function spawnHeart() {
+  const n = 750;
+  const cur = new Float32Array(n * 3);
+  const target = new Float32Array(n * 3);
+  const dir = new Float32Array(n * 3);
+  const delay = new Float32Array(n);
   const colors = new Float32Array(n * 3);
   const pinkA = new THREE.Color("#ff9ec4");
-  const pinkB = new THREE.Color("#ff4d94");
+  const pinkB = new THREE.Color("#ff3d86");
   const tmp = new THREE.Color();
+
   for (let i = 0; i < n; i++) {
+    const i3 = i * 3;
     const t = Math.random() * Math.PI * 2;
     const fill = Math.sqrt(Math.random());
-    const x = 16 * Math.pow(Math.sin(t), 3);
-    const y =
-      13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-    const i3 = i * 3;
-    positions[i3] = x * fill * 0.09 + (Math.random() - 0.5) * 0.05;
-    positions[i3 + 1] = y * fill * 0.09 + (Math.random() - 0.5) * 0.05;
-    positions[i3 + 2] = (Math.random() - 0.5) * 0.1;
+    const hx = 16 * Math.pow(Math.sin(t), 3);
+    const hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    const tx = hx * fill * 0.085;
+    const ty = hy * fill * 0.085 + 0.15;
+    const tz = (Math.random() - 0.5) * 0.12;
+    target[i3] = tx;
+    target[i3 + 1] = ty;
+    target[i3 + 2] = tz;
+
+    // empiezan en el centro
+    cur[i3] = (Math.random() - 0.5) * 0.05;
+    cur[i3 + 1] = (Math.random() - 0.5) * 0.05;
+    cur[i3 + 2] = (Math.random() - 0.5) * 0.05;
+
+    // dirección de la explosión (hacia afuera) + algo de azar
+    const len = Math.hypot(tx, ty, tz) || 1;
+    dir[i3] = tx / len + (Math.random() - 0.5) * 0.5;
+    dir[i3 + 1] = ty / len + (Math.random() - 0.5) * 0.5;
+    dir[i3 + 2] = tz / len + (Math.random() - 0.5) * 0.5;
+
+    delay[i] = Math.random() * 0.45;
+
     tmp.copy(pinkA).lerp(pinkB, Math.random());
     colors[i3] = tmp.r;
     colors[i3 + 1] = tmp.g;
     colors[i3 + 2] = tmp.b;
   }
+
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("position", new THREE.BufferAttribute(cur, 3));
   geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   const mat = new THREE.PointsMaterial({
-    size: 0.22,
+    size: 0.18,
     sizeAttenuation: true,
     vertexColors: true,
     map: starTexture,
@@ -381,35 +411,84 @@ function makeHeartPoints() {
     blending: THREE.AdditiveBlending,
     opacity: 1,
   });
-  return new THREE.Points(geo, mat);
+  const obj = new THREE.Points(geo, mat);
+  scene.add(obj);
+  hearts.push({ obj, born: elapsedTime, target, dir, delay, n, boomed: false });
 }
 
-function spawnHeart() {
-  const h = makeHeartPoints();
-  h.position.set(0, 0, 0);
-  scene.add(h);
-  hearts.push({ obj: h, born: elapsedTime });
+function spawnFlash() {
+  const s = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: starTexture,
+      color: new THREE.Color("#ffd9ec"),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0.9,
+    })
+  );
+  s.position.set(0, 0.15, 0);
+  s.scale.set(0.5, 0.5, 1);
+  scene.add(s);
+  flashes.push({ obj: s, born: elapsedTime, dur: 0.9 });
 }
 
 function updateHearts(elapsed) {
+  const boomStart = HEART.form + HEART.hold;
   for (let i = hearts.length - 1; i >= 0; i--) {
-    const hrt = hearts[i];
-    const age = elapsed - hrt.born;
-    // siempre mirando a la cámara
-    hrt.obj.quaternion.copy(camera.quaternion);
-    // aparece (0-1s), sube y se desvanece (3-6s)
-    const grow = Math.min(1, age / 0.9);
-    const s = 1.1 + (1 - Math.pow(1 - grow, 3)) * 1.6;
-    hrt.obj.scale.setScalar(s);
-    hrt.obj.position.y = age * 0.25;
-    let op = 1;
-    if (age > 3) op = Math.max(0, 1 - (age - 3) / 3);
-    hrt.obj.material.opacity = op;
-    if (age > 6.2) {
-      scene.remove(hrt.obj);
-      hrt.obj.geometry.dispose();
-      hrt.obj.material.dispose();
+    const h = hearts[i];
+    const age = elapsed - h.born;
+    h.obj.quaternion.copy(camera.quaternion);
+    const pos = h.obj.geometry.attributes.position.array;
+
+    if (age < boomStart) {
+      // formación (salen del centro) + sostener
+      for (let j = 0; j < h.n; j++) {
+        const j3 = j * 3;
+        const f = easeOut(Math.min(1, Math.max(0, (age - h.delay[j]) / (HEART.form * 0.7))));
+        pos[j3] = h.target[j3] * f;
+        pos[j3 + 1] = h.target[j3 + 1] * f;
+        pos[j3 + 2] = h.target[j3 + 2] * f;
+      }
+      h.obj.material.opacity = 1;
+    } else {
+      // explosión tipo supernova
+      if (!h.boomed) {
+        h.boomed = true;
+        spawnFlash();
+      }
+      const k = (age - boomStart) / HEART.boom;
+      const push = Math.pow(k, 1.4) * 7;
+      for (let j = 0; j < h.n; j++) {
+        const j3 = j * 3;
+        pos[j3] = h.target[j3] + h.dir[j3] * push;
+        pos[j3 + 1] = h.target[j3 + 1] + h.dir[j3 + 1] * push;
+        pos[j3 + 2] = h.target[j3 + 2] + h.dir[j3 + 2] * push;
+      }
+      h.obj.material.opacity = Math.max(0, 1 - k);
+    }
+    h.obj.geometry.attributes.position.needsUpdate = true;
+
+    if (age > boomStart + HEART.boom) {
+      scene.remove(h.obj);
+      h.obj.geometry.dispose();
+      h.obj.material.dispose();
       hearts.splice(i, 1);
+    }
+  }
+
+  // destello de la supernova
+  for (let i = flashes.length - 1; i >= 0; i--) {
+    const fl = flashes[i];
+    const age = elapsed - fl.born;
+    const k = age / fl.dur;
+    const s = 0.5 + easeOut(Math.min(1, k)) * 7;
+    fl.obj.scale.set(s, s, 1);
+    fl.obj.material.opacity = Math.max(0, 0.9 * (1 - k));
+    if (age > fl.dur) {
+      scene.remove(fl.obj);
+      fl.obj.material.dispose();
+      flashes.splice(i, 1);
     }
   }
 }
@@ -420,9 +499,9 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.85, // strength (intensidad)
+  0.55, // strength (intensidad) — más contenida
   0.7, // radius
-  0.2 // threshold (umbral alto = solo lo muy brillante brilla)
+  0.3 // threshold (umbral alto = solo lo muy brillante brilla)
 );
 composer.addPass(bloom);
 
@@ -436,11 +515,11 @@ function animate() {
   elapsedTime += delta;
   const elapsed = elapsedTime;
 
-  // La galaxia gira lentamente (20% más lento que antes)
-  galaxyGroup.rotation.y = elapsed * 0.02754;
+  // La galaxia gira lentamente (otro 20% más lento)
+  galaxyGroup.rotation.y = elapsed * 0.022032;
 
-  // Latido suave del núcleo
-  const pulse = 7 + Math.sin(elapsed * 1.2) * 0.25;
+  // Latido suave del núcleo (más tenue)
+  const pulse = 4.5 + Math.sin(elapsed * 1.2) * 0.18;
   coreGlow.scale.set(pulse, pulse, 1);
 
   // Astros y corazones

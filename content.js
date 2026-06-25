@@ -116,7 +116,9 @@ export const CONTENT = {
     {
       tipo: "sistema",
       titulo: "Nuestro Sistema Solar",
-      color: "#ffcf6b",
+      color: "#ffdf8f",
+      solTamano: 0.18,
+      cinturon: { desde: 1.55, hasta: 1.8 },
       orbita: { radio: 6.5, velocidad: 0.014, fase: 1.2, inclinacion: 0.1 },
       contenido: { tipo: "poema", texto: "Nuestro hogar entre las estrellas." },
       planetas: [

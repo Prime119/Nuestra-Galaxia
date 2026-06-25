@@ -213,6 +213,32 @@ export function buildAstros(scene) {
     }
   }
 
+  // Cinturón de asteroides (anillo de pequeñas rocas) para un sistema
+  function addBelt(parent, desde, hasta) {
+    const count = 240;
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const rr = (desde + Math.random() * (hasta - desde)) * SYS_ORBIT * ESC;
+      const aa = Math.random() * TWO_PI;
+      pos[i * 3] = Math.cos(aa) * rr;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 0.012;
+      pos[i * 3 + 2] = Math.sin(aa) * rr;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0xbfae90,
+      size: 0.02,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      map: glowTex,
+      blending: THREE.AdditiveBlending,
+    });
+    parent.add(new THREE.Points(geo, mat));
+  }
+
   for (const a of CONTENT.astros) {
     const node = new THREE.Group();
     root.add(node);
@@ -220,13 +246,13 @@ export function buildAstros(scene) {
     const inst = { data: a, node, type: a.tipo, radius: 0.1 * ESC, glows: [] };
 
     if (a.tipo === "estrella" || a.tipo === "sistema") {
-      const r = 0.085 * ESC; // estrellas y soles: los astros más grandes
+      const r = (a.solTamano || 0.085) * ESC; // estrellas y soles: los astros más grandes
       const core = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 16, 16),
+        new THREE.SphereGeometry(r, 18, 18),
         new THREE.MeshBasicMaterial({ color: new THREE.Color(a.color || "#ffe6a0") })
       );
       node.add(core);
-      const g = glowSprite(a.color || "#ffe6a0", (a.tipo === "sistema" ? 0.55 : 0.7) * ESC);
+      const g = glowSprite(a.color || "#ffe6a0", r * 7); // halo proporcional al tamaño
       node.add(g);
       inst.glows.push({ s: g, base: g.scale.x, ph: Math.random() * TWO_PI, sp: 1.5 + Math.random() });
       inst.radius = r;
@@ -269,7 +295,7 @@ export function buildAstros(scene) {
       inst.planetas = [];
       a.planetas.forEach((pl, idx) => {
         const radio = (pl.radio || 0.45 + idx * 0.35) * SYS_ORBIT * ESC;
-        const velocidad = pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08);
+        const velocidad = (pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08)) * 0.8; // 20% más lento
         const fase = pl.fase ?? Math.random() * TWO_PI;
         const childR = (pl.tamano || 0.06) * SYS_PSIZE * ESC; // siempre menor que el sol
 
@@ -301,6 +327,7 @@ export function buildAstros(scene) {
 
         inst.planetas.push({ data: { radio, velocidad, fase }, pnode });
       });
+      if (a.cinturon) addBelt(node, a.cinturon.desde, a.cinturon.hasta);
     }
 
     // movimiento
