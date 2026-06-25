@@ -4,6 +4,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { buildAstros } from "./astros.js";
+import { buildEffects } from "./effects.js";
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
@@ -34,7 +35,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 0.92;
 
 // --- Controles de exploración (zoom + desplazamiento) -----------------------
 const controls = new OrbitControls(camera, canvas);
@@ -73,7 +74,7 @@ const galaxyGroup = new THREE.Group();
 scene.add(galaxyGroup);
 
 const params = {
-  count: 32000,
+  count: 96000,
   radius: 11,
   branches: 4,
   spin: 1.15,
@@ -123,8 +124,8 @@ function buildGalaxy() {
     } else {
       mixed.copy(cMid).lerp(cOutside, (t - 0.5) / 0.5);
     }
-    // Suavizamos el brillo hacia afuera para no deslumbrar
-    const dim = 0.55 + 0.45 * (1 - t);
+    // Suavizamos el brillo hacia afuera y bajamos un poco por densidad
+    const dim = (0.5 + 0.4 * (1 - t)) * 0.82;
     colors[i3] = mixed.r * dim;
     colors[i3 + 1] = mixed.g * dim;
     colors[i3 + 2] = mixed.b * dim;
@@ -137,7 +138,7 @@ function buildGalaxy() {
   geometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
   const material = new THREE.PointsMaterial({
-    size: 0.16,
+    size: 0.085,
     sizeAttenuation: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -152,6 +153,51 @@ function buildGalaxy() {
 }
 buildGalaxy();
 
+// --- Nubes estelares (nebulosas) -------------------------------------------
+function makeCloudTexture() {
+  const size = 128;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, "rgba(255,255,255,0.9)");
+  g.addColorStop(0.4, "rgba(255,255,255,0.25)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+const cloudTex = makeCloudTexture();
+
+function buildNebulae() {
+  const cols = ["#7a3aa0", "#3a5ab0", "#2a8a9a", "#a03a7a", "#5a3a9a"];
+  for (let i = 0; i < 24; i++) {
+    const radius = 2.5 + Math.random() * 8;
+    const branch = (Math.floor(Math.random() * params.branches) / params.branches) * Math.PI * 2;
+    const ang = branch + radius * params.spin + (Math.random() - 0.5) * 0.6;
+    const x = Math.cos(ang) * radius + (Math.random() - 0.5) * 1.2;
+    const z = Math.sin(ang) * radius + (Math.random() - 0.5) * 1.2;
+    const y = (Math.random() - 0.5) * 0.5;
+    const s = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: cloudTex,
+        color: new THREE.Color(cols[i % cols.length]),
+        transparent: true,
+        opacity: 0.09 + Math.random() * 0.08,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      })
+    );
+    const sc = 2.5 + Math.random() * 4;
+    s.scale.set(sc, sc * 0.7, 1);
+    s.position.set(x, y, z);
+    galaxyGroup.add(s);
+  }
+}
+buildNebulae();
+
 // --- Núcleo brillante central -----------------------------------------------
 function makeCoreGlow() {
   const size = 256;
@@ -159,10 +205,10 @@ function makeCoreGlow() {
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,250,235,0.5)");
-  g.addColorStop(0.2, "rgba(255,225,170,0.36)");
-  g.addColorStop(0.45, "rgba(255,170,200,0.16)");
-  g.addColorStop(0.75, "rgba(160,90,200,0.05)");
+  g.addColorStop(0, "rgba(255,250,235,0.4)");
+  g.addColorStop(0.2, "rgba(255,225,170,0.29)");
+  g.addColorStop(0.45, "rgba(255,170,200,0.13)");
+  g.addColorStop(0.75, "rgba(160,90,200,0.04)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -237,6 +283,9 @@ scene.add(keyLight);
 
 // --- Astros clickeables -----------------------------------------------------
 const astros = buildAstros(scene);
+
+// --- Efectos: cometas, asteroides errantes y meteoros -----------------------
+const effects = buildEffects(scene);
 
 // --- Toque en el CENTRO de la galaxia (corazón rosa) ------------------------
 const coreHit = new THREE.Mesh(
@@ -348,7 +397,7 @@ function closeModal() {
 // Las estrellas salen del centro y forman un corazón; se mantiene ~1s y luego
 // se desvanece con una explosión tipo supernova (NO afecta a la galaxia).
 const hearts = [];
-const HEART = { form: 3.2, hold: 3.0, y: 6.0, scale: 0.16 };
+const HEART = { form: 3.2, hold: 3.0, boom: 2.6, y: 6.0, scale: 0.16 };
 
 function easeOut(x) {
   return 1 - Math.pow(1 - x, 3);
@@ -366,10 +415,14 @@ function spawnHeart() {
   const pinkB = new THREE.Color("#ff3d86");
   const tmp = new THREE.Color();
 
-  // Plano que mira a la cámara, centrado ARRIBA de la galaxia
-  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-  const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(camera.quaternion);
+  // Corazón SIEMPRE vertical (eje Y del mundo), mirando de frente a la cámara
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  const up = new THREE.Vector3(0, 1, 0);
+  const right = new THREE.Vector3().crossVectors(up, forward);
+  if (right.lengthSq() < 1e-4) right.set(1, 0, 0);
+  right.normalize();
+  const normal = new THREE.Vector3().crossVectors(right, up).normalize();
   const center = new THREE.Vector3(0, HEART.y, 0);
   const v = new THREE.Vector3();
 
@@ -381,9 +434,9 @@ function spawnHeart() {
     const hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
     const lx = hx * fill * HEART.scale;
     const ly = hy * fill * HEART.scale;
-    const lz = (Math.random() - 0.5) * 0.18;
-    // objetivo (en el mundo): el corazón flotando ARRIBA de la galaxia
-    v.copy(center).addScaledVector(right, lx).addScaledVector(up, ly).addScaledVector(normal, lz);
+    // grosor 3D: abombado en el centro, fino en los bordes
+    const depth = HEART.scale * 4.5 * (1 - fill) * (Math.random() * 2 - 1);
+    v.copy(center).addScaledVector(right, lx).addScaledVector(up, ly).addScaledVector(normal, depth);
     target[i3] = v.x;
     target[i3 + 1] = v.y;
     target[i3 + 2] = v.z;
@@ -396,12 +449,12 @@ function spawnHeart() {
     cur[i3 + 1] = start[i3 + 1];
     cur[i3 + 2] = start[i3 + 2];
 
-    // dirección de explosión: hacia afuera desde el centro del corazón
-    const dx = v.x - center.x, dy = v.y - center.y, dz = v.z - center.z;
-    const len = Math.hypot(dx, dy, dz) || 1;
-    dir[i3] = dx / len + (Math.random() - 0.5) * 0.5;
-    dir[i3 + 1] = dy / len + (Math.random() - 0.5) * 0.5;
-    dir[i3 + 2] = dz / len + (Math.random() - 0.5) * 0.5;
+    // dirección de la explosión: esfera 3D (eyección de supernova)
+    let ex = Math.random() * 2 - 1, ey = Math.random() * 2 - 1, ez = Math.random() * 2 - 1;
+    const elen = Math.hypot(ex, ey, ez) || 1;
+    dir[i3] = ex / elen;
+    dir[i3 + 1] = ey / elen;
+    dir[i3 + 2] = ez / elen;
 
     delay[i] = Math.random() * 1.0;
 
@@ -429,23 +482,98 @@ function spawnHeart() {
   hearts.push({ obj, born: elapsedTime, start, target, dir, delay, n, boomed: false, center });
 }
 
-const flashEl = document.getElementById("flash");
-let flash = null;
-function startFlash() {
-  flash = { born: elapsedTime };
+// --- Supernova realista (al terminar el corazón) ----------------------------
+const supernovas = [];
+function makeNovaRingTexture() {
+  const size = 256;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(0.55, "rgba(0,0,0,0)");
+  g.addColorStop(0.72, "rgba(180,210,255,0.5)");
+  g.addColorStop(0.85, "rgba(255,255,255,0.95)");
+  g.addColorStop(0.95, "rgba(255,190,120,0.4)");
+  g.addColorStop(1, "rgba(255,140,80,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }
-function updateFlash(elapsed) {
-  if (!flash) return;
-  const age = elapsed - flash.born;
-  const up = 0.4, full = 0.4, down = 1.9; // sube a blanco, se mantiene y se desvanece
-  let o;
-  if (age < up) o = age / up;
-  else if (age < up + full) o = 1;
-  else o = Math.max(0, 1 - (age - up - full) / down);
-  flashEl.style.opacity = String(o);
-  if (age > up + full + down) {
-    flashEl.style.opacity = "0";
-    flash = null;
+const novaRingTex = makeNovaRingTexture();
+
+function spawnSupernova(center) {
+  const flash = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: starTexture,
+      color: new THREE.Color("#eaf2ff"),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 1,
+    })
+  );
+  flash.position.copy(center);
+  flash.scale.set(0.4, 0.4, 1);
+  scene.add(flash);
+
+  const ring = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      map: novaRingTex,
+      color: new THREE.Color("#dfeaff"),
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 1,
+    })
+  );
+  ring.position.copy(center);
+  ring.scale.set(0.5, 0.5, 1);
+  scene.add(ring);
+
+  supernovas.push({ flash, ring, born: elapsedTime });
+}
+
+function recolorSupernova(h) {
+  const col = h.obj.geometry.attributes.color.array;
+  const white = new THREE.Color("#eaf2ff");
+  const blue = new THREE.Color("#9fc4ff");
+  const orange = new THREE.Color("#ff8a3c");
+  const tmp = new THREE.Color();
+  for (let j = 0; j < h.n; j++) {
+    const r = Math.random();
+    if (r < 0.55) tmp.copy(white).lerp(blue, Math.random());
+    else if (r < 0.8) tmp.copy(white);
+    else tmp.copy(orange);
+    const j3 = j * 3;
+    col[j3] = tmp.r;
+    col[j3 + 1] = tmp.g;
+    col[j3 + 2] = tmp.b;
+  }
+  h.obj.geometry.attributes.color.needsUpdate = true;
+}
+
+function updateSupernovas(elapsed) {
+  for (let i = supernovas.length - 1; i >= 0; i--) {
+    const s = supernovas[i];
+    const age = elapsed - s.born;
+    // destello central: crece muy rápido y se apaga
+    const fs = 0.4 + easeOut(Math.min(1, age / 0.25)) * 7;
+    s.flash.scale.set(fs, fs, 1);
+    s.flash.material.opacity = Math.max(0, 1 - age / 1.6);
+    // onda expansiva (shockwave)
+    const rs = easeOut(Math.min(1, age / 2.6)) * 22;
+    s.ring.scale.set(rs, rs, 1);
+    s.ring.material.opacity = Math.max(0, 0.9 * (1 - age / 2.6));
+    if (age > 2.7) {
+      scene.remove(s.flash);
+      scene.remove(s.ring);
+      s.flash.material.dispose();
+      s.ring.material.dispose();
+      supernovas.splice(i, 1);
+    }
   }
 }
 
@@ -467,18 +595,25 @@ function updateHearts(elapsed) {
       }
       h.obj.material.opacity = 1;
     } else {
-      // estalla en una EXPLOSIÓN DE LUZ que cubre toda la pantalla
+      // EXPLOTA en una supernova realista (eyección 3D + destello + onda)
       if (!h.boomed) {
         h.boomed = true;
-        startFlash();
+        spawnSupernova(h.center);
+        recolorSupernova(h);
       }
-      // el corazón se funde dentro de la luz
-      const k = (age - boomStart) / 0.5;
+      const k = (age - boomStart) / HEART.boom;
+      const push = easeOut(Math.min(1, k)) * 16;
+      for (let j = 0; j < h.n; j++) {
+        const j3 = j * 3;
+        pos[j3] = h.target[j3] + h.dir[j3] * push;
+        pos[j3 + 1] = h.target[j3 + 1] + h.dir[j3 + 1] * push;
+        pos[j3 + 2] = h.target[j3 + 2] + h.dir[j3 + 2] * push;
+      }
       h.obj.material.opacity = Math.max(0, 1 - k);
     }
     h.obj.geometry.attributes.position.needsUpdate = true;
 
-    if (age > boomStart + 0.9) {
+    if (age > boomStart + HEART.boom) {
       scene.remove(h.obj);
       h.obj.geometry.dispose();
       h.obj.material.dispose();
@@ -518,8 +653,9 @@ function animate() {
 
   // Astros y corazones
   astros.update(elapsed, delta);
+  effects.update(elapsed, delta);
   updateHearts(elapsed);
-  updateFlash(elapsed);
+  updateSupernovas(elapsed);
 
   controls.update();
   composer.render();

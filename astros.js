@@ -295,7 +295,7 @@ export function buildAstros(scene) {
       inst.planetas = [];
       a.planetas.forEach((pl, idx) => {
         const radio = (pl.radio || 0.45 + idx * 0.35) * SYS_ORBIT * ESC;
-        const velocidad = (pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08)) * 0.8; // 20% más lento
+        const velocidad = (pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08)) * 0.64; // 20% más lento (acumulado)
         const fase = pl.fase ?? Math.random() * TWO_PI;
         const childR = (pl.tamano || 0.06) * SYS_PSIZE * ESC; // siempre menor que el sol
 
