@@ -105,7 +105,7 @@ export function buildEffects(scene) {
       prev: null,
     });
   }
-  for (let i = 0; i < 3; i++) makeComet();
+  for (let i = 0; i < 8; i++) makeComet();
 
   function updateComets(delta) {
     for (const c of comets) {

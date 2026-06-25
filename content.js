@@ -14,7 +14,7 @@
    ============================================================ */
 
 export const CONTENT = {
-  escala: 0.21, // tamaño global de los astros
+  escala: 0.147, // tamaño global de los astros
 
   astros: [
   { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
@@ -203,5 +203,118 @@ export const CONTENT = {
         { titulo: "Eos III", color: "#c9a6ff", tamano: 0.08, radio: 1.55, velocidad: 0.29, contenido: { tipo: "video", url: "" } },
       ],
     },
+    // ---------- 30 ASTROS MÁS (111 - 140) ----------
+    { tipo: "estrella", titulo: "Astro 111", color: "#fff0c4", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 111)..." } },
+    { tipo: "planeta", titulo: "Astro 112", color: "#7fb0ff", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "estrella", titulo: "Astro 113", color: "#9fe0c0", contenido: { tipo: "video", url: "" }, errante: true },
+    { tipo: "planeta", titulo: "Astro 114", color: "#c9a6ff", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 114)..." } },
+    { tipo: "estrella", titulo: "Astro 115", color: "#ffb27f", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "agujero", titulo: "Astro 116", contenido: { tipo: "video", url: "" } },
+    { tipo: "estrella", titulo: "Astro 117", color: "#ff7fb0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 117)..." } },
+    { tipo: "planeta", titulo: "Astro 118", color: "#ffd9a0", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "estrella", titulo: "Astro 119", color: "#cfe2ff", contenido: { tipo: "video", url: "" }, errante: true },
+    { tipo: "planeta", titulo: "Astro 120", color: "#ffe6a0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 120)..." } },
+    { tipo: "estrella", titulo: "Astro 121", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 122", color: "#ff9ec4", contenido: { tipo: "video", url: "" } },
+    { tipo: "estrella", titulo: "Astro 123", color: "#fff0c4", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 123)..." } },
+    { tipo: "planeta", titulo: "Astro 124", color: "#7fb0ff", contenido: { tipo: "imagen", url: "" }, errante: true },
+    { tipo: "estrella", titulo: "Astro 125", color: "#9fe0c0", contenido: { tipo: "video", url: "" } },
+    { tipo: "agujero", titulo: "Astro 126", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 126)..." } },
+    { tipo: "estrella", titulo: "Astro 127", color: "#ffb27f", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 128", color: "#8fd0ff", contenido: { tipo: "video", url: "" } },
+    { tipo: "estrella", titulo: "Astro 129", color: "#ff7fb0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 129)..." } },
+    { tipo: "planeta", titulo: "Astro 130", color: "#ffd9a0", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "estrella", titulo: "Astro 131", color: "#cfe2ff", contenido: { tipo: "video", url: "" }, errante: true },
+    { tipo: "planeta", titulo: "Astro 132", color: "#ffe6a0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 132)..." } },
+    { tipo: "estrella", titulo: "Astro 133", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 134", color: "#ff9ec4", contenido: { tipo: "video", url: "" } },
+    { tipo: "estrella", titulo: "Astro 135", color: "#fff0c4", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 135)..." } },
+    { tipo: "planeta", titulo: "Astro 136", color: "#7fb0ff", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "agujero", titulo: "Astro 137", contenido: { tipo: "video", url: "" } },
+    { tipo: "planeta", titulo: "Astro 138", color: "#c9a6ff", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 138)..." }, errante: true },
+    { tipo: "estrella", titulo: "Astro 139", color: "#ffb27f", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 140", color: "#8fd0ff", contenido: { tipo: "video", url: "" } },
+
+    // ---------- 8 SISTEMAS SOLARES MÁS ----------
+    {
+      tipo: "sistema", titulo: "Sistema Nova", color: "#ffe6a0",
+      contenido: { tipo: "poema", texto: "Sistema Nova..." },
+      planetas: [
+        { titulo: "Nova 1", color: "#ffe6a0", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Nova 2", color: "#ff9ec4", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Nova 3", color: "#7fb0ff", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Helios", color: "#fff0c4",
+      contenido: { tipo: "poema", texto: "Sistema Helios..." },
+      planetas: [
+        { titulo: "Helios 1", color: "#bcd8ff", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Helios 2", color: "#fff0c4", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Helios 3", color: "#9fe0c0", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+        { titulo: "Helios 4", color: "#ffb27f", tamano: 0.12, radio: 1.86, velocidad: 0.40, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Selene", color: "#c9a6ff",
+      contenido: { tipo: "poema", texto: "Sistema Selene..." },
+      planetas: [
+        { titulo: "Selene 1", color: "#ff9ec4", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Selene 2", color: "#7fb0ff", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Selene 3", color: "#c9a6ff", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+        { titulo: "Selene 4", color: "#8fd0ff", tamano: 0.12, radio: 1.86, velocidad: 0.40, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Selene 5", color: "#ffd9a0", tamano: 0.14, radio: 2.28, velocidad: 0.30, contenido: { tipo: "imagen", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Atlas", color: "#ff7fb0",
+      contenido: { tipo: "poema", texto: "Sistema Atlas..." },
+      planetas: [
+        { titulo: "Atlas 1", color: "#fff0c4", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Atlas 2", color: "#9fe0c0", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Atlas 3", color: "#ffb27f", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Rhea", color: "#ffe6a0",
+      contenido: { tipo: "poema", texto: "Sistema Rhea..." },
+      planetas: [
+        { titulo: "Rhea 1", color: "#7fb0ff", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Rhea 2", color: "#c9a6ff", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Rhea 3", color: "#8fd0ff", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+        { titulo: "Rhea 4", color: "#ffd9a0", tamano: 0.12, radio: 1.86, velocidad: 0.40, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Titán", color: "#fff0c4",
+      contenido: { tipo: "poema", texto: "Sistema Titán..." },
+      planetas: [
+        { titulo: "Titán 1", color: "#9fe0c0", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Titán 2", color: "#ffb27f", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Titán 3", color: "#ff7fb0", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+        { titulo: "Titán 4", color: "#cfe2ff", tamano: 0.12, radio: 1.86, velocidad: 0.40, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Titán 5", color: "#bcd8ff", tamano: 0.14, radio: 2.28, velocidad: 0.30, contenido: { tipo: "imagen", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Cygnus", color: "#c9a6ff",
+      contenido: { tipo: "poema", texto: "Sistema Cygnus..." },
+      planetas: [
+        { titulo: "Cygnus 1", color: "#c9a6ff", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Cygnus 2", color: "#8fd0ff", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Cygnus 3", color: "#ffd9a0", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Andrómeda", color: "#ff7fb0",
+      contenido: { tipo: "poema", texto: "Sistema Andrómeda..." },
+      planetas: [
+        { titulo: "Andrómeda 1", color: "#ffb27f", tamano: 0.06, radio: 0.60, velocidad: 0.70, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+        { titulo: "Andrómeda 2", color: "#ff7fb0", tamano: 0.08, radio: 1.02, velocidad: 0.60, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Andrómeda 3", color: "#cfe2ff", tamano: 0.10, radio: 1.44, velocidad: 0.50, contenido: { tipo: "video", url: "" } },
+        { titulo: "Andrómeda 4", color: "#bcd8ff", tamano: 0.12, radio: 1.86, velocidad: 0.40, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 0)..." } },
+      ],
+    },
+
   ],
 };
