@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Nuestra Galaxia</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Pantalla de carga -->
+  <div id="loader">
+    <div class="loader-core"></div>
+    <p>Encendiendo las estrellas...</p>
+  </div>
+
+  <!-- Lienzo de la galaxia -->
+  <canvas id="galaxy-canvas"></canvas>
+
+  <!-- Pista de exploración -->
+  <div id="hint">
+    <span>Arrastra para mirar &nbsp;·&nbsp; Pellizca o rueda para acercarte</span>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
