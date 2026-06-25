@@ -6,10 +6,9 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
-   Galaxia espiral barrada con cuerpo de disco completo:
-   bulbo/barra cremoso, varios brazos azules poblados de
-   estrellas, cúmulos y regiones rosas. En movimiento y
-   explorable con zoom/desplazamiento.
+   Espiral de varios brazos (forma de la 1ª versión) con la
+   paleta realista (crema, azules, rosas, blancos) y brillo
+   contenido. En movimiento y explorable con zoom.
    ============================================================ */
 
 const canvas = document.getElementById("galaxy-canvas");
@@ -17,7 +16,7 @@ const canvas = document.getElementById("galaxy-canvas");
 // --- Escena, cámara, render -------------------------------------------------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#03030a");
-scene.fog = new THREE.FogExp2("#03030a", 0.009);
+scene.fog = new THREE.FogExp2("#03030a", 0.012);
 
 const camera = new THREE.PerspectiveCamera(
   60,
@@ -25,7 +24,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(0, 12, 11);
+camera.position.set(0, 9, 14);
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -35,7 +34,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.8; // exposición más baja = menos brillo
+renderer.toneMappingExposure = 0.82; // brillo contenido
 
 // --- Controles de exploración (zoom + desplazamiento) -----------------------
 const controls = new OrbitControls(camera, canvas);
@@ -58,8 +57,8 @@ function makeStarTexture() {
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
   g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.25, "rgba(255,255,255,0.8)");
-  g.addColorStop(0.5, "rgba(255,255,255,0.3)");
+  g.addColorStop(0.25, "rgba(255,255,255,0.85)");
+  g.addColorStop(0.5, "rgba(255,255,255,0.35)");
   g.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -69,37 +68,27 @@ function makeStarTexture() {
 }
 const starTexture = makeStarTexture();
 
-// --- Generación de la galaxia -----------------------------------------------
+// --- Generación de la galaxia espiral (estilo 1ª versión) -------------------
 const galaxyGroup = new THREE.Group();
 scene.add(galaxyGroup);
 
 const params = {
+  count: 36000,
   radius: 11,
-  // Bulbo/barra central cremoso
-  bar: { count: 9000, length: 2.8, width: 1.0, thickness: 0.32 },
-  // Disco con varios brazos (el cuerpo de la galaxia, MUCHAS estrellas)
-  disk: {
-    count: 46000,
-    branches: 3,
-    spin: 0.55,
-    randomness: 0.28,
-    randomnessPower: 2.4,
-    thickness: 0.16,
-  },
+  branches: 4,
+  spin: 1.15,
+  randomness: 0.32,
+  randomnessPower: 2.6,
+  height: 0.5,
 };
 
-// Aproximación a una distribución gaussiana en el rango [-1, 1] aprox.
-function gauss() {
-  return (Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2;
-}
-
 function buildGalaxy() {
-  const total = params.bar.count + params.disk.count;
-  const positions = new Float32Array(total * 3);
-  const colors = new Float32Array(total * 3);
-  const scales = new Float32Array(total);
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(params.count * 3);
+  const colors = new Float32Array(params.count * 3);
 
-  // Paleta inspirada en NGC 1300
+  // Paleta realista (NGC 1300): crema en el centro, azules en los
+  // brazos, regiones rosas/rojas y destellos blancos.
   const colCreamCenter = new THREE.Color("#fff2dc");
   const colCreamEdge = new THREE.Color("#ffdca0");
   const colDust = new THREE.Color("#9c6a3f");
@@ -111,133 +100,86 @@ function buildGalaxy() {
   const colWhite = new THREE.Color("#ffffff");
   const tmp = new THREE.Color();
 
-  let p = 0;
-  const set = (x, y, z, col, bright, scale) => {
-    const i3 = p * 3;
-    positions[i3] = x;
-    positions[i3 + 1] = y;
-    positions[i3 + 2] = z;
-    colors[i3] = col.r * bright;
-    colors[i3 + 1] = col.g * bright;
-    colors[i3 + 2] = col.b * bright;
-    scales[p] = scale;
-    p++;
-  };
+  for (let i = 0; i < params.count; i++) {
+    const i3 = i * 3;
+    const radius = Math.pow(Math.random(), 1.4) * params.radius;
+    const branchAngle = ((i % params.branches) / params.branches) * Math.PI * 2;
+    const spinAngle = radius * params.spin;
 
-  // 1) BULBO + BARRA (cremoso, elongado en X, brillo contenido)
-  for (let i = 0; i < params.bar.count; i++) {
-    const x = gauss() * params.bar.length;
-    const z = gauss() * params.bar.width;
-    const y = gauss() * params.bar.thickness;
-    const d = Math.min(
-      1,
-      Math.sqrt((x / params.bar.length) ** 2 + (z / params.bar.width) ** 2)
-    );
-    tmp.copy(colCreamCenter).lerp(colCreamEdge, d);
-    if (Math.random() < 0.05) tmp.copy(colDust);
-    const bright = 0.5 * (1 - 0.4 * d); // mucho más tenue que antes
-    const scale = (0.55 + Math.random() * 0.5) * (1 - 0.2 * d);
-    set(x, y, z, tmp, bright, scale);
-  }
-
-  // 2) DISCO CON VARIOS BRAZOS (cuerpo de la galaxia)
-  const dk = params.disk;
-  const barEnd = params.bar.length * 0.6;
-  for (let i = 0; i < dk.count; i++) {
-    // radio: empieza cerca del bulbo y llega al borde, denso en el medio
-    const radius = barEnd + Math.pow(Math.random(), 0.85) * (params.radius - barEnd);
-    const branchAngle = ((i % dk.branches) / dk.branches) * Math.PI * 2;
-    const spinAngle = radius * dk.spin;
-
-    const rnd = () =>
-      Math.pow(Math.random(), dk.randomnessPower) *
+    const rand = () =>
+      Math.pow(Math.random(), params.randomnessPower) *
       (Math.random() < 0.5 ? 1 : -1) *
-      dk.randomness *
+      params.randomness *
       radius;
 
-    const ox = rnd();
-    const oz = rnd();
-    const angle = branchAngle + spinAngle;
-    const x = Math.cos(angle) * radius + ox;
-    const z = Math.sin(angle) * radius + oz;
-    const y = gauss() * dk.thickness * (1 + radius * 0.05);
+    const rx = rand();
+    const ry = rand() * params.height;
+    const rz = rand();
 
-    const tr = radius / params.radius; // 0..1
+    positions[i3] = Math.cos(branchAngle + spinAngle) * radius + rx;
+    positions[i3 + 1] = ry;
+    positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + rz;
+
+    // --- Color realista + brillo contenido ---
+    const t = radius / params.radius;
     const roll = Math.random();
-    let bright, scale;
+    let bright;
 
-    if (roll < 0.035) {
-      // cúmulo azul-blanco brillante (pocos y no tan intensos)
-      tmp.copy(colBlueLight).lerp(colWhite, Math.random() * 0.5);
-      bright = 0.7;
-      scale = 1.1 + Math.random() * 0.9;
-    } else if (roll < 0.075) {
-      // región HII rosa/roja
-      tmp.copy(colPink).lerp(colRed, Math.random());
-      bright = 0.6;
-      scale = 0.8 + Math.random() * 0.7;
+    if (t < 0.22) {
+      // Centro cremoso
+      tmp.copy(colCreamCenter).lerp(colCreamEdge, t / 0.22);
+      if (Math.random() < 0.04) tmp.copy(colDust); // vetas de polvo cálido
+      bright = 0.55 * (1 - 0.25 * (t / 0.22));
     } else {
-      // estrellas de fondo del disco: muchas y tenues
-      // interior cremoso -> exterior azulado
-      tmp.copy(colCreamEdge).lerp(colBlueDeep, Math.min(1, tr * 1.4));
-      tmp.lerp(colBlue, tr * 0.5);
-      bright = 0.22 + Math.random() * 0.22; // tenues
-      scale = 0.45 + Math.random() * 0.5;
+      const k = (t - 0.22) / 0.78;
+      if (roll < 0.05) {
+        // destello blanco / cúmulo
+        tmp.copy(colWhite).lerp(colBlueLight, Math.random() * 0.5);
+        bright = 0.75;
+      } else if (roll < 0.1) {
+        // región HII rosa/roja
+        tmp.copy(colPink).lerp(colRed, Math.random());
+        bright = 0.6;
+      } else {
+        // azul general: profundo dentro, claro fuera
+        tmp.copy(colBlueDeep).lerp(colBlue, k).lerp(colBlueLight, k * 0.4);
+        bright = 0.4 + 0.18 * k;
+      }
     }
-    set(x, y, z, tmp, bright, scale);
+
+    colors[i3] = tmp.r * bright;
+    colors[i3 + 1] = tmp.g * bright;
+    colors[i3 + 2] = tmp.b * bright;
   }
 
-  const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-  geometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      uSize: { value: 42 * Math.min(window.devicePixelRatio, 2) },
-      uTex: { value: starTexture },
-    },
-    vertexShader: `
-      attribute float aScale;
-      attribute vec3 color;
-      varying vec3 vColor;
-      uniform float uSize;
-      void main() {
-        vColor = color;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aScale * uSize / -mv.z;
-        gl_Position = projectionMatrix * mv;
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D uTex;
-      varying vec3 vColor;
-      void main() {
-        vec4 t = texture2D(uTex, gl_PointCoord);
-        if (t.a < 0.02) discard;
-        gl_FragColor = vec4(vColor, 1.0) * t;
-      }
-    `,
-    transparent: true,
+  const material = new THREE.PointsMaterial({
+    size: 0.15,
+    sizeAttenuation: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
+    vertexColors: true,
+    map: starTexture,
+    transparent: true,
+    opacity: 0.9,
   });
 
-  const points = new THREE.Points(geometry, material);
-  galaxyGroup.add(points);
+  galaxyGroup.add(new THREE.Points(geometry, material));
 }
 buildGalaxy();
 
-// --- Núcleo: resplandor cremoso MUY suave -----------------------------------
+// --- Núcleo: resplandor cremoso suave ---------------------------------------
 function makeCoreGlow() {
   const size = 256;
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,248,230,0.38)");
-  g.addColorStop(0.3, "rgba(255,234,195,0.18)");
-  g.addColorStop(0.6, "rgba(255,215,150,0.06)");
+  g.addColorStop(0, "rgba(255,248,230,0.45)");
+  g.addColorStop(0.3, "rgba(255,234,195,0.22)");
+  g.addColorStop(0.6, "rgba(255,215,150,0.07)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -252,7 +194,7 @@ function makeCoreGlow() {
       depthWrite: false,
     })
   );
-  sprite.scale.set(3.4, 3.4, 1);
+  sprite.scale.set(3.8, 3.8, 1);
   return sprite;
 }
 const coreGlow = makeCoreGlow();
@@ -260,7 +202,7 @@ galaxyGroup.add(coreGlow);
 
 // --- Fondo de estrellas y galaxias lejanas (colores variados, tenues) -------
 function buildBackgroundStars() {
-  const count = 2600;
+  const count = 2400;
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
@@ -313,14 +255,14 @@ function buildBackgroundStars() {
 }
 buildBackgroundStars();
 
-// --- Post-procesado: bloom MUY contenido ------------------------------------
+// --- Post-procesado: bloom contenido ----------------------------------------
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.3, // strength (intensidad) — baja
-  0.6, // radius
-  0.5 // threshold alto = casi nada se "quema"
+  0.35, // strength (intensidad) — baja
+  0.65, // radius
+  0.45 // threshold alto = solo lo muy brillante brilla
 );
 composer.addPass(bloom);
 
@@ -335,7 +277,7 @@ function animate() {
   galaxyGroup.rotation.y = elapsed * 0.04455;
 
   // Latido muy suave del núcleo
-  const pulse = 3.4 + Math.sin(elapsed * 1.2) * 0.12;
+  const pulse = 3.8 + Math.sin(elapsed * 1.2) * 0.14;
   coreGlow.scale.set(pulse, pulse, 1);
 
   controls.update();
