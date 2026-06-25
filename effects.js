@@ -51,7 +51,7 @@ export function buildEffects(scene) {
   function makeComet() {
     const node = new THREE.Group();
     group.add(node);
-    const rock = makeRock(0.07, "#8a8076");
+    const rock = makeRock(0.04, "#8a8076");
     node.add(rock);
     // coma muy tenue
     const coma = new THREE.Sprite(
@@ -59,12 +59,12 @@ export function buildEffects(scene) {
         map: glowTex,
         color: new THREE.Color("#bcd6ff"),
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.3,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       })
     );
-    coma.scale.set(0.3, 0.3, 1);
+    coma.scale.set(0.16, 0.16, 1);
     node.add(coma);
 
     const N = 70;
@@ -76,14 +76,14 @@ export function buildEffects(scene) {
     const tail = new THREE.Points(
       tgeo,
       new THREE.PointsMaterial({
-        size: 0.09,
+        size: 0.05,
         map: glowTex,
         vertexColors: true,
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         sizeAttenuation: true,
-        opacity: 0.9,
+        opacity: 0.85,
       })
     );
     group.add(tail);
@@ -102,6 +102,7 @@ export function buildEffects(scene) {
       tilt: (Math.random() - 0.5) * 0.4,
       theta: Math.random() * TWO_PI,
       spin: (Math.random() - 0.5) * 1.5,
+      prev: null,
     });
   }
   for (let i = 0; i < 3; i++) makeComet();
@@ -117,16 +118,24 @@ export function buildEffects(scene) {
       c.rock.rotation.y += c.spin * delta;
       c.rock.rotation.x += c.spin * 0.6 * delta;
 
-      const len = Math.hypot(x, y, z) || 1;
-      const ax = x / len, ay = y / len, az = z / len; // lejos del centro
-      const tailLen = 0.8 + 2.6 * Math.max(0, (c.a - r) / c.a);
+      // la cola va DETRÁS del movimiento (estela real al orbitar)
+      if (!c.prev) c.prev = new THREE.Vector3(x, y, z);
+      let bx = c.prev.x - x, by = c.prev.y - y, bz = c.prev.z - z;
+      let bl = Math.hypot(bx, by, bz);
+      if (bl < 1e-5) {
+        bx = -x; by = -y; bz = -z;
+        bl = Math.hypot(bx, by, bz) || 1;
+      }
+      bx /= bl; by /= bl; bz /= bl;
+      c.prev.set(x, y, z);
+      const tailLen = 0.9;
       for (let i = 0; i < c.N; i++) {
         const f = i / (c.N - 1);
         const i3 = i * 3;
-        c.tpos[i3] = x + ax * f * tailLen + (Math.random() - 0.5) * 0.04;
-        c.tpos[i3 + 1] = y + ay * f * tailLen + (Math.random() - 0.5) * 0.04;
-        c.tpos[i3 + 2] = z + az * f * tailLen + (Math.random() - 0.5) * 0.04;
-        const b = (1 - f) * 0.9;
+        c.tpos[i3] = x + bx * f * tailLen + (Math.random() - 0.5) * 0.03;
+        c.tpos[i3 + 1] = y + by * f * tailLen + (Math.random() - 0.5) * 0.03;
+        c.tpos[i3 + 2] = z + bz * f * tailLen + (Math.random() - 0.5) * 0.03;
+        const b = (1 - f) * 0.85;
         c.tcol[i3] = 0.8 * b;
         c.tcol[i3 + 1] = 0.9 * b;
         c.tcol[i3 + 2] = b;
@@ -222,7 +231,7 @@ export function buildEffects(scene) {
       })
     );
     group.add(obj);
-    const vel = new THREE.Vector3(-start.x, -1 - Math.random(), -start.z)
+    const vel = new THREE.Vector3(Math.random() * 2 - 1, -(0.3 + Math.random() * 0.6), Math.random() * 2 - 1)
       .normalize()
       .multiplyScalar(8 + Math.random() * 6);
     meteors.push({ obj, pos, col, N, p: start.clone(), vel, life: 0, max: 1.0 + Math.random() * 0.7 });
