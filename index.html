@@ -21,8 +21,15 @@
     <span>Arrastra para mirar &nbsp;·&nbsp; Pellizca o rueda para acercarte &nbsp;·&nbsp; Toca un astro</span>
   </div>
 
-  <!-- Destello de luz a pantalla completa (explosión final del corazón) -->
+  <!-- Destello de luz a pantalla completa (sin uso actual) -->
   <div id="flash"></div>
+
+  <!-- Marco de contenido flotante que sigue al astro -->
+  <div id="astro-card" class="astro-card">
+    <button id="astro-card-close" class="astro-card-close" aria-label="Cerrar">&times;</button>
+    <h3 id="astro-card-title"></h3>
+    <div id="astro-card-body" class="astro-card-body"></div>
+  </div>
 
   <!-- Ventana de contenido -->
   <div id="modal" class="modal">

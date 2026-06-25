@@ -321,21 +321,79 @@ function handleTap(cx, cy) {
   raycaster.setFromCamera(pointer, camera);
   const targets = [coreHit, ...astros.clickables, ...effects.clickables];
   const hits = raycaster.intersectObjects(targets, false);
-  if (!hits.length) return;
+  if (!hits.length) {
+    if (focus.active) unfocusAstro();
+    return;
+  }
   const obj = hits[0].object;
   if (obj.userData.isCore) {
     spawnHeart();
   } else if (obj.userData.astro) {
-    openModal(obj.userData.astro);
+    focusAstro(obj, obj.userData.astro);
   }
 }
 
-// --- Ventana de contenido ---------------------------------------------------
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modal-title");
-const modalBody = document.getElementById("modal-body");
-document.getElementById("modal-close").addEventListener("click", closeModal);
-modal.querySelector(".modal-backdrop").addEventListener("click", closeModal);
+// --- Marco de contenido flotante + cámara que sigue al astro ----------------
+const card = document.getElementById("astro-card");
+const cardTitle = document.getElementById("astro-card-title");
+const cardBody = document.getElementById("astro-card-body");
+document.getElementById("astro-card-close").addEventListener("click", unfocusAstro);
+
+const focus = { active: false, obj: null, offset: new THREE.Vector3() };
+const _ap = new THREE.Vector3();
+const _desired = new THREE.Vector3();
+const _look = new THREE.Vector3();
+const _proj = new THREE.Vector3();
+
+function focusAstro(hitObj, astro) {
+  focus.obj = hitObj;
+  hitObj.getWorldPosition(_ap);
+  const dist = astro && astro.planetas ? 3.4 : 1.5; // los sistemas necesitan más distancia
+  _desired.copy(camera.position).sub(_ap);
+  if (_desired.lengthSq() < 1e-4) _desired.set(0, 0.4, 1);
+  _desired.normalize();
+  _desired.y = Math.max(_desired.y, 0) + 0.35; // un poco elevado para dejar hueco al marco
+  _desired.normalize().multiplyScalar(dist);
+  focus.offset.copy(_desired);
+  _look.copy(controls.target);
+  focus.active = true;
+  controls.enabled = false;
+  openCard(astro);
+}
+
+function unfocusAstro() {
+  if (!focus.active) return;
+  focus.active = false;
+  focus.obj = null;
+  controls.target.copy(_look);
+  controls.enabled = true;
+  hideCard();
+}
+
+function openCard(astro) {
+  cardTitle.textContent = astro.titulo || "";
+  cardBody.innerHTML = buildContentHTML(astro);
+  card.classList.add("show");
+}
+
+function hideCard() {
+  card.classList.remove("show");
+  card.style.opacity = "";
+  cardBody.innerHTML = "";
+}
+
+function positionCard(worldPos) {
+  _proj.copy(worldPos).project(camera);
+  if (_proj.z > 1) {
+    card.style.opacity = "0";
+    return;
+  }
+  card.style.opacity = "1";
+  const x = (_proj.x * 0.5 + 0.5) * window.innerWidth;
+  const y = (-_proj.y * 0.5 + 0.5) * window.innerHeight;
+  card.style.left = x + "px";
+  card.style.top = y + "px";
+}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (m) => ({
@@ -371,26 +429,18 @@ function videoEmbed(url) {
   return `<video controls playsinline src="${url}"></video>`;
 }
 
-function openModal(astro) {
+function buildContentHTML(astro) {
   const c = astro.contenido || {};
-  modalTitle.textContent = astro.titulo || "";
-  let html = "";
   if (c.tipo === "poema") {
-    html = `<div class="poema">${escapeHtml(c.texto || "")}</div>`;
+    return `<div class="poema">${escapeHtml(c.texto || "")}</div>`;
   } else if (c.tipo === "imagen") {
-    html = c.url
+    return c.url
       ? `<img src="${imageUrl(c.url)}" alt="${escapeHtml(astro.titulo || "")}">`
       : `<div class="empty">Aún no has puesto una imagen aquí.</div>`;
   } else if (c.tipo === "video") {
-    html = c.url ? videoEmbed(c.url) : `<div class="empty">Aún no has puesto un video aquí.</div>`;
+    return c.url ? videoEmbed(c.url) : `<div class="empty">Aún no has puesto un video aquí.</div>`;
   }
-  modalBody.innerHTML = html;
-  modal.classList.add("open");
-}
-
-function closeModal() {
-  modal.classList.remove("open");
-  modalBody.innerHTML = "";
+  return "";
 }
 
 // --- Corazón de estrellas rosa (al tocar el centro) -------------------------
@@ -657,7 +707,23 @@ function animate() {
   updateHearts(elapsed);
   updateSupernovas(elapsed);
 
-  controls.update();
+  if (focus.active && focus.obj) {
+    // si el astro enfocado desapareció (p. ej. una estrella fugaz), soltar
+    if (!focus.obj.parent) {
+      unfocusAstro();
+      controls.update();
+    } else {
+      focus.obj.getWorldPosition(_ap);
+      _desired.copy(_ap).add(focus.offset);
+      camera.position.lerp(_desired, 0.08);
+      _look.lerp(_ap, 0.12);
+      camera.lookAt(_look);
+      positionCard(_ap);
+    }
+  } else {
+    controls.update();
+  }
+
   composer.render();
 }
 animate();

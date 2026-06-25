@@ -216,3 +216,99 @@ html, body {
   opacity: 0;
   pointer-events: none;
 }
+
+
+/* ===== Marco de contenido flotante (sigue al astro) ===== */
+.astro-card {
+  position: fixed;
+  z-index: 30;
+  width: min(78vw, 330px);
+  transform: translate(-50%, -118%);
+  background: linear-gradient(160deg, rgba(28, 24, 54, 0.93), rgba(12, 12, 30, 0.93));
+  border: 1px solid rgba(160, 150, 220, 0.3);
+  border-radius: 14px;
+  padding: 16px 16px 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 26px rgba(150, 120, 220, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+  backdrop-filter: blur(3px);
+}
+
+.astro-card.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.astro-card-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8e8ff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.astro-card-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#astro-card-title {
+  font-size: 16px;
+  font-weight: normal;
+  letter-spacing: 0.4px;
+  margin: 2px 26px 10px 2px;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(180, 150, 255, 0.45);
+}
+
+.astro-card-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #dcdcf5;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.astro-card-body .poema {
+  font-style: italic;
+  white-space: pre-wrap;
+  line-height: 1.85;
+  font-size: 15px;
+}
+
+.astro-card-body img,
+.astro-card-body video {
+  width: 100%;
+  border-radius: 10px;
+  display: block;
+}
+
+.astro-card-body .video-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.astro-card-body .video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.astro-card-body .empty {
+  opacity: 0.6;
+  font-style: italic;
+  text-align: center;
+  padding: 14px 0;
+}
