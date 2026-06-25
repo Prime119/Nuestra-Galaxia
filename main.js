@@ -397,7 +397,7 @@ function closeModal() {
 // Las estrellas salen del centro y forman un corazón; se mantiene ~1s y luego
 // se desvanece con una explosión tipo supernova (NO afecta a la galaxia).
 const hearts = [];
-const HEART = { form: 3.2, hold: 3.0, boom: 2.6, y: 6.0, scale: 0.16 };
+const HEART = { form: 3.2, hold: 2.0, boom: 2.6, y: 6.0, scale: 0.16 };
 
 function easeOut(x) {
   return 1 - Math.pow(1 - x, 3);
