@@ -159,6 +159,7 @@ export function buildAstros(scene) {
   const clickables = [];
   const instances = [];
   const moons = []; // lunas a animar
+  const spins = []; // rotación de planetas sobre su eje
 
   function autoOrbit() {
     const radio = 2.6 + Math.random() * 7.2;
@@ -276,6 +277,9 @@ export function buildAstros(scene) {
         })
       );
       node.add(planet);
+      // rotación sobre su eje (aleatoria, como planetas reales)
+      planet.rotation.z = (Math.random() - 0.5) * 0.9;
+      spins.push({ mesh: planet, speed: (0.2 + Math.random() * 1.2) * (Math.random() < 0.5 ? 1 : -1) });
       const g = glowSprite(a.color || "#7fb0ff", 0.16 * ESC, 0.45);
       node.add(g);
       inst.glows.push({ s: g, base: g.scale.x, ph: Math.random() * TWO_PI, sp: 1.5 + Math.random() });
@@ -295,7 +299,7 @@ export function buildAstros(scene) {
       inst.planetas = [];
       a.planetas.forEach((pl, idx) => {
         const radio = (pl.radio || 0.45 + idx * 0.35) * SYS_ORBIT * ESC;
-        const velocidad = (pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08)) * 0.64; // 20% más lento (acumulado)
+        const velocidad = (pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08)) * 0.512; // 20% más lento (acumulado)
         const fase = pl.fase ?? Math.random() * TWO_PI;
         const childR = (pl.tamano || 0.06) * SYS_PSIZE * ESC; // siempre menor que el sol
 
@@ -312,6 +316,10 @@ export function buildAstros(scene) {
           })
         );
         pnode.add(mesh);
+        // rotación sobre su eje: real si se especifica (nuestro sistema), aleatoria si no
+        mesh.rotation.z = pl.eje != null ? pl.eje : (Math.random() - 0.5) * 0.9;
+        const spd = pl.rotacion != null ? pl.rotacion : (0.2 + Math.random() * 1.2) * (Math.random() < 0.5 ? 1 : -1);
+        spins.push({ mesh, speed: spd });
         decorate(pnode, childR, pl); // lunas/anillos de los planetas del sistema
 
         const orbit = new THREE.Mesh(
@@ -410,6 +418,11 @@ export function buildAstros(scene) {
     for (const m of moons) {
       const ang = m.ph + elapsed * m.v;
       m.g.position.set(Math.cos(ang) * m.r, Math.sin(ang) * m.r * m.incl, Math.sin(ang) * m.r);
+    }
+
+    // rotación de los planetas sobre su eje
+    for (const s of spins) {
+      s.mesh.rotation.y += s.speed * dt;
     }
   }
 

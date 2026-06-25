@@ -14,7 +14,7 @@
    ============================================================ */
 
 export const CONTENT = {
-  escala: 0.42, // tamaño global de los astros
+  escala: 0.21, // tamaño global de los astros
 
   astros: [
   { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
@@ -122,14 +122,85 @@ export const CONTENT = {
       orbita: { radio: 6.5, velocidad: 0.014, fase: 1.2, inclinacion: 0.1 },
       contenido: { tipo: "poema", texto: "Nuestro hogar entre las estrellas." },
       planetas: [
-        { titulo: "Mercurio", color: "#b0a090", tamano: 0.05, radio: 0.5, velocidad: 0.9, contenido: { tipo: "poema", texto: "Mercurio..." } },
-        { titulo: "Venus", color: "#e8c27a", tamano: 0.07, radio: 0.75, velocidad: 0.72, contenido: { tipo: "imagen", url: "" } },
-        { titulo: "Tierra", color: "#4f8fe0", tamano: 0.075, radio: 1.05, velocidad: 0.6, lunas: 1, contenido: { tipo: "poema", texto: "Aquí empezó todo." } },
-        { titulo: "Marte", color: "#d05a3a", tamano: 0.06, radio: 1.35, velocidad: 0.5, lunas: 2, contenido: { tipo: "imagen", url: "" } },
-        { titulo: "Júpiter", color: "#d8a878", tamano: 0.16, radio: 1.95, velocidad: 0.32, lunas: 4, contenido: { tipo: "video", url: "" } },
-        { titulo: "Saturno", color: "#e0c98a", tamano: 0.14, radio: 2.5, velocidad: 0.26, anillo: true, lunas: 3, contenido: { tipo: "imagen", url: "" } },
-        { titulo: "Urano", color: "#9fe0e8", tamano: 0.1, radio: 2.95, velocidad: 0.2, anillo: true, contenido: { tipo: "poema", texto: "Urano..." } },
-        { titulo: "Neptuno", color: "#3f63d0", tamano: 0.1, radio: 3.35, velocidad: 0.16, lunas: 1, contenido: { tipo: "poema", texto: "Neptuno..." } },
+        { titulo: "Mercurio", color: "#b0a090", tamano: 0.05, radio: 0.5, velocidad: 0.9, rotacion: 0.01, eje: 0.0, contenido: { tipo: "poema", texto: "Mercurio..." } },
+        { titulo: "Venus", color: "#e8c27a", tamano: 0.07, radio: 0.75, velocidad: 0.72, rotacion: -0.004, eje: 3.05, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Tierra", color: "#4f8fe0", tamano: 0.075, radio: 1.05, velocidad: 0.6, rotacion: 0.6, eje: 0.41, lunas: 1, contenido: { tipo: "poema", texto: "Aquí empezó todo." } },
+        { titulo: "Marte", color: "#d05a3a", tamano: 0.06, radio: 1.35, velocidad: 0.5, rotacion: 0.58, eje: 0.44, lunas: 2, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Júpiter", color: "#d8a878", tamano: 0.16, radio: 1.95, velocidad: 0.32, rotacion: 1.45, eje: 0.05, lunas: 4, contenido: { tipo: "video", url: "" } },
+        { titulo: "Saturno", color: "#e0c98a", tamano: 0.14, radio: 2.5, velocidad: 0.26, rotacion: 1.35, eje: 0.47, anillo: true, lunas: 3, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Urano", color: "#9fe0e8", tamano: 0.1, radio: 2.95, velocidad: 0.2, rotacion: -0.84, eje: 1.71, anillo: true, contenido: { tipo: "poema", texto: "Urano..." } },
+        { titulo: "Neptuno", color: "#3f63d0", tamano: 0.1, radio: 3.35, velocidad: 0.16, rotacion: 0.89, eje: 0.49, lunas: 1, contenido: { tipo: "poema", texto: "Neptuno..." } },
+      ],
+    },
+
+    // ---------- 20 ASTROS MÁS (91 - 110) ----------
+    { tipo: "planeta", titulo: "Astro 91", color: "#7fb0ff", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "estrella", titulo: "Astro 92", color: "#ffe6a0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 92)..." } },
+    { tipo: "planeta", titulo: "Astro 93", color: "#ff9ec4", errante: true, contenido: { tipo: "video", url: "" } },
+    { tipo: "agujero", titulo: "Astro 94", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 94)..." } },
+    { tipo: "estrella", titulo: "Astro 95", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 96", color: "#9fe0c0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 96)..." } },
+    { tipo: "estrella", titulo: "Astro 97", color: "#fff0c4", contenido: { tipo: "video", url: "" } },
+    { tipo: "planeta", titulo: "Astro 98", color: "#c9a6ff", errante: true, contenido: { tipo: "imagen", url: "" } },
+    { tipo: "estrella", titulo: "Astro 99", color: "#ffb27f", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 99)..." } },
+    { tipo: "agujero", titulo: "Astro 100", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 101", color: "#8fd0ff", contenido: { tipo: "video", url: "" } },
+    { tipo: "estrella", titulo: "Astro 102", color: "#ff7fb0", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 102)..." } },
+    { tipo: "planeta", titulo: "Astro 103", color: "#ffd9a0", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "estrella", titulo: "Astro 104", color: "#cfe2ff", errante: true, contenido: { tipo: "video", url: "" } },
+    { tipo: "planeta", titulo: "Astro 105", color: "#7fb0ff", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 105)..." } },
+    { tipo: "agujero", titulo: "Astro 106", contenido: { tipo: "video", url: "" } },
+    { tipo: "estrella", titulo: "Astro 107", color: "#9fe0c0", contenido: { tipo: "imagen", url: "" } },
+    { tipo: "planeta", titulo: "Astro 108", color: "#ff9ec4", errante: true, contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 108)..." } },
+    { tipo: "estrella", titulo: "Astro 109", color: "#fff0c4", contenido: { tipo: "video", url: "" } },
+    { tipo: "planeta", titulo: "Astro 110", color: "#c9a6ff", contenido: { tipo: "imagen", url: "" } },
+
+    // ---------- 5 SISTEMAS SOLARES INVENTADOS ----------
+    {
+      tipo: "sistema", titulo: "Sistema Aurora", color: "#ffd28f",
+      contenido: { tipo: "poema", texto: "Sistema Aurora..." },
+      planetas: [
+        { titulo: "Aurora I", color: "#ff9ec4", tamano: 0.06, radio: 0.6, velocidad: 0.7, contenido: { tipo: "poema", texto: "..." } },
+        { titulo: "Aurora II", color: "#6fb0ff", tamano: 0.09, radio: 1.0, velocidad: 0.45, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Aurora III", color: "#c9a6ff", tamano: 0.07, radio: 1.4, velocidad: 0.32, contenido: { tipo: "video", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Vega", color: "#bcd8ff",
+      contenido: { tipo: "poema", texto: "Sistema Vega..." },
+      planetas: [
+        { titulo: "Vega I", color: "#9fe0c0", tamano: 0.07, radio: 0.65, velocidad: 0.65, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Vega II", color: "#ffb27f", tamano: 0.11, radio: 1.1, velocidad: 0.4, contenido: { tipo: "poema", texto: "..." } },
+        { titulo: "Vega III", color: "#8fd0ff", tamano: 0.08, radio: 1.55, velocidad: 0.3, contenido: { tipo: "video", url: "" } },
+        { titulo: "Vega IV", color: "#ff9ec4", tamano: 0.06, radio: 2.0, velocidad: 0.22, contenido: { tipo: "imagen", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Lyra", color: "#ff7fb0",
+      contenido: { tipo: "poema", texto: "Sistema Lyra..." },
+      planetas: [
+        { titulo: "Lyra I", color: "#fff0c4", tamano: 0.06, radio: 0.6, velocidad: 0.68, contenido: { tipo: "poema", texto: "..." } },
+        { titulo: "Lyra II", color: "#7fb0ff", tamano: 0.1, radio: 1.05, velocidad: 0.42, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Lyra III", color: "#c9a6ff", tamano: 0.08, radio: 1.5, velocidad: 0.3, contenido: { tipo: "video", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Orión", color: "#9fe0e8",
+      contenido: { tipo: "poema", texto: "Sistema Orión..." },
+      planetas: [
+        { titulo: "Orión I", color: "#ffd9a0", tamano: 0.07, radio: 0.7, velocidad: 0.6, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Orión II", color: "#ff9ec4", tamano: 0.12, radio: 1.2, velocidad: 0.36, contenido: { tipo: "poema", texto: "..." } },
+        { titulo: "Orión III", color: "#6fb0ff", tamano: 0.09, radio: 1.7, velocidad: 0.26, contenido: { tipo: "video", url: "" } },
+        { titulo: "Orión IV", color: "#9fe0c0", tamano: 0.06, radio: 2.1, velocidad: 0.2, contenido: { tipo: "imagen", url: "" } },
+      ],
+    },
+    {
+      tipo: "sistema", titulo: "Sistema Eos", color: "#ffe6a0",
+      contenido: { tipo: "poema", texto: "Sistema Eos..." },
+      planetas: [
+        { titulo: "Eos I", color: "#ff7fb0", tamano: 0.06, radio: 0.62, velocidad: 0.66, contenido: { tipo: "poema", texto: "..." } },
+        { titulo: "Eos II", color: "#8fd0ff", tamano: 0.1, radio: 1.08, velocidad: 0.41, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Eos III", color: "#c9a6ff", tamano: 0.08, radio: 1.55, velocidad: 0.29, contenido: { tipo: "video", url: "" } },
       ],
     },
   ],

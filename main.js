@@ -645,7 +645,7 @@ function animate() {
   const elapsed = elapsedTime;
 
   // La galaxia gira lentamente (otro 20% más lento)
-  galaxyGroup.rotation.y = elapsed * 0.022032;
+  galaxyGroup.rotation.y = elapsed * 0.0176256;
 
   // Latido suave del núcleo (más tenue)
   const pulse = 4.5 + Math.sin(elapsed * 1.2) * 0.18;
