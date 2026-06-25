@@ -6,9 +6,8 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
-   Espiral de varios brazos (forma de la 1ª versión) con la
-   paleta realista (crema, azules, rosas, blancos) y brillo
-   contenido. En movimiento y explorable con zoom.
+   Galaxia espiral en movimiento, núcleo brillante,
+   estrellas suavizadas y exploración con zoom/desplazamiento.
    ============================================================ */
 
 const canvas = document.getElementById("galaxy-canvas");
@@ -34,7 +33,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.82; // brillo contenido
+renderer.toneMappingExposure = 1.0;
 
 // --- Controles de exploración (zoom + desplazamiento) -----------------------
 const controls = new OrbitControls(camera, canvas);
@@ -45,7 +44,7 @@ controls.zoomSpeed = 0.8;
 controls.panSpeed = 0.6;
 controls.minDistance = 3;
 controls.maxDistance = 40;
-controls.maxPolarAngle = Math.PI * 0.92;
+controls.maxPolarAngle = Math.PI * 0.92; // evita cruzar por debajo del todo
 controls.autoRotate = false;
 controls.target.set(0, 0, 0);
 
@@ -68,37 +67,32 @@ function makeStarTexture() {
 }
 const starTexture = makeStarTexture();
 
-// --- Generación de la galaxia espiral (estilo 1ª versión) -------------------
+// --- Generación de la galaxia espiral ---------------------------------------
 const galaxyGroup = new THREE.Group();
 scene.add(galaxyGroup);
 
 const params = {
-  count: 36000,
+  count: 32000,
   radius: 11,
   branches: 4,
   spin: 1.15,
   randomness: 0.32,
   randomnessPower: 2.6,
-  height: 0.5,
+  insideColor: "#ffd9a0", // núcleo cálido
+  midColor: "#c77bd8", // brazos púrpura
+  outsideColor: "#3a7bff", // bordes azules
+  height: 0.55, // grosor del disco
 };
 
 function buildGalaxy() {
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(params.count * 3);
   const colors = new Float32Array(params.count * 3);
+  const scales = new Float32Array(params.count);
 
-  // Paleta realista (NGC 1300): crema en el centro, azules en los
-  // brazos, regiones rosas/rojas y destellos blancos.
-  const colCreamCenter = new THREE.Color("#fff2dc");
-  const colCreamEdge = new THREE.Color("#ffdca0");
-  const colDust = new THREE.Color("#9c6a3f");
-  const colBlueDeep = new THREE.Color("#274f9e");
-  const colBlue = new THREE.Color("#5f9bf0");
-  const colBlueLight = new THREE.Color("#cfe2ff");
-  const colPink = new THREE.Color("#ff5d86");
-  const colRed = new THREE.Color("#ff3a52");
-  const colWhite = new THREE.Color("#ffffff");
-  const tmp = new THREE.Color();
+  const cInside = new THREE.Color(params.insideColor);
+  const cMid = new THREE.Color(params.midColor);
+  const cOutside = new THREE.Color(params.outsideColor);
 
   for (let i = 0; i < params.count; i++) {
     const i3 = i * 3;
@@ -120,43 +114,29 @@ function buildGalaxy() {
     positions[i3 + 1] = ry;
     positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + rz;
 
-    // --- Color realista + brillo contenido ---
+    // Color: del cálido (centro) al púrpura y luego azul (borde)
+    const mixed = new THREE.Color();
     const t = radius / params.radius;
-    const roll = Math.random();
-    let bright;
-
-    if (t < 0.22) {
-      // Centro cremoso
-      tmp.copy(colCreamCenter).lerp(colCreamEdge, t / 0.22);
-      if (Math.random() < 0.04) tmp.copy(colDust); // vetas de polvo cálido
-      bright = 0.55 * (1 - 0.25 * (t / 0.22));
+    if (t < 0.5) {
+      mixed.copy(cInside).lerp(cMid, t / 0.5);
     } else {
-      const k = (t - 0.22) / 0.78;
-      if (roll < 0.05) {
-        // destello blanco / cúmulo
-        tmp.copy(colWhite).lerp(colBlueLight, Math.random() * 0.5);
-        bright = 0.75;
-      } else if (roll < 0.1) {
-        // región HII rosa/roja
-        tmp.copy(colPink).lerp(colRed, Math.random());
-        bright = 0.6;
-      } else {
-        // azul general: profundo dentro, claro fuera
-        tmp.copy(colBlueDeep).lerp(colBlue, k).lerp(colBlueLight, k * 0.4);
-        bright = 0.4 + 0.18 * k;
-      }
+      mixed.copy(cMid).lerp(cOutside, (t - 0.5) / 0.5);
     }
+    // Suavizamos el brillo hacia afuera para no deslumbrar
+    const dim = 0.55 + 0.45 * (1 - t);
+    colors[i3] = mixed.r * dim;
+    colors[i3 + 1] = mixed.g * dim;
+    colors[i3 + 2] = mixed.b * dim;
 
-    colors[i3] = tmp.r * bright;
-    colors[i3 + 1] = tmp.g * bright;
-    colors[i3 + 2] = tmp.b * bright;
+    scales[i] = (0.6 + Math.random() * 0.8) * (1 - t * 0.4);
   }
 
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
   const material = new THREE.PointsMaterial({
-    size: 0.15,
+    size: 0.16,
     sizeAttenuation: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -166,20 +146,22 @@ function buildGalaxy() {
     opacity: 0.9,
   });
 
-  galaxyGroup.add(new THREE.Points(geometry, material));
+  const points = new THREE.Points(geometry, material);
+  galaxyGroup.add(points);
 }
 buildGalaxy();
 
-// --- Núcleo: resplandor cremoso suave ---------------------------------------
+// --- Núcleo brillante central -----------------------------------------------
 function makeCoreGlow() {
   const size = 256;
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,248,230,0.45)");
-  g.addColorStop(0.3, "rgba(255,234,195,0.22)");
-  g.addColorStop(0.6, "rgba(255,215,150,0.07)");
+  g.addColorStop(0, "rgba(255,250,235,1)");
+  g.addColorStop(0.2, "rgba(255,225,170,0.9)");
+  g.addColorStop(0.45, "rgba(255,170,200,0.5)");
+  g.addColorStop(0.75, "rgba(160,90,200,0.18)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -194,54 +176,42 @@ function makeCoreGlow() {
       depthWrite: false,
     })
   );
-  sprite.scale.set(3.8, 3.8, 1);
+  sprite.scale.set(7, 7, 1);
   return sprite;
 }
 const coreGlow = makeCoreGlow();
 galaxyGroup.add(coreGlow);
 
-// --- Fondo de estrellas y galaxias lejanas (colores variados, tenues) -------
+// --- Fondo de estrellas lejanas (atenuadas) ---------------------------------
 function buildBackgroundStars() {
-  const count = 2400;
+  const count = 1800;
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
 
-  const palette = [
-    new THREE.Color("#ffffff"),
-    new THREE.Color("#cfe0ff"),
-    new THREE.Color("#ffd9a0"),
-    new THREE.Color("#ff8a5c"),
-    new THREE.Color("#ff5a4a"),
-    new THREE.Color("#8fd0ff"),
-  ];
-  const tmp = new THREE.Color();
-
   for (let i = 0; i < count; i++) {
     const i3 = i * 3;
-    const r = 38 + Math.random() * 62;
+    // Distribución en una esfera grande alrededor de la galaxia
+    const r = 40 + Math.random() * 60;
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     positions[i3] = r * Math.sin(phi) * Math.cos(theta);
     positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.6;
     positions[i3 + 2] = r * Math.cos(phi);
 
-    if (Math.random() < 0.16) {
-      tmp.copy(palette[2 + Math.floor(Math.random() * 4)]);
-    } else {
-      tmp.copy(palette[Math.floor(Math.random() * 2)]);
-    }
-    const b = 0.28 + Math.random() * 0.35;
-    colors[i3] = tmp.r * b;
-    colors[i3 + 1] = tmp.g * b;
-    colors[i3 + 2] = tmp.b * b;
+    // Estrellas tenues: brillo bajo para no deslumbrar
+    const b = 0.35 + Math.random() * 0.35;
+    const tint = Math.random();
+    colors[i3] = b * (0.85 + tint * 0.15);
+    colors[i3 + 1] = b * 0.9;
+    colors[i3 + 2] = b * (0.95 + (1 - tint) * 0.05);
   }
 
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
   const material = new THREE.PointsMaterial({
-    size: 0.26,
+    size: 0.28,
     sizeAttenuation: true,
     depthWrite: false,
     blending: THREE.AdditiveBlending,
@@ -255,14 +225,14 @@ function buildBackgroundStars() {
 }
 buildBackgroundStars();
 
-// --- Post-procesado: bloom contenido ----------------------------------------
+// --- Post-procesado: bloom suave (sin quemar la imagen) ---------------------
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.35, // strength (intensidad) — baja
-  0.65, // radius
-  0.45 // threshold alto = solo lo muy brillante brilla
+  0.85, // strength (intensidad)
+  0.7, // radius
+  0.2 // threshold (umbral alto = solo lo muy brillante brilla)
 );
 composer.addPass(bloom);
 
@@ -273,11 +243,11 @@ function animate() {
   requestAnimationFrame(animate);
   const elapsed = clock.getElapsedTime();
 
-  // La galaxia gira lentamente, como una de verdad
-  galaxyGroup.rotation.y = elapsed * 0.04455;
+  // La galaxia gira lentamente, como una de verdad (velocidad reducida 10%)
+  galaxyGroup.rotation.y = elapsed * 0.0405;
 
-  // Latido muy suave del núcleo
-  const pulse = 3.8 + Math.sin(elapsed * 1.2) * 0.14;
+  // Latido suave del núcleo
+  const pulse = 7 + Math.sin(elapsed * 1.2) * 0.25;
   coreGlow.scale.set(pulse, pulse, 1);
 
   controls.update();
