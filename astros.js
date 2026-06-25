@@ -2,11 +2,11 @@ import * as THREE from "three";
 import { CONTENT } from "./content.js";
 
 /* ============================================================
-   ASTROS: pequeños (tamaño de las estrellas de la galaxia).
-   - estrella / planeta / agujero (Interstellar) / sistema solar
-   - se colocan SOLOS (órbitas automáticas) si no tienen "orbita"
-   - los "errante" vagan y esquivan al resto (sin chocar)
-   - área de toque amplia para poder pulsarlos en el móvil
+   ASTROS pequeños (tamaño de estrella):
+   estrella / planeta / agujero (Interstellar) / sistema solar.
+   - planetas: algunos con 1-5 lunas y/o anillos (aleatorio)
+   - agujeros negros de tamaños variados (algunos diminutos)
+   - se colocan solos; los "errante" vagan esquivando al resto
    ============================================================ */
 
 const MAX_R = 10.5;
@@ -35,7 +35,6 @@ const glowTex = radialTexture([
   [1, "rgba(255,255,255,0)"],
 ]);
 
-// anillo de luz (photon ring) para el agujero negro
 function ringTexture() {
   const size = 256;
   const c = document.createElement("canvas");
@@ -56,7 +55,6 @@ function ringTexture() {
 }
 const photonRingTex = ringTexture();
 
-// disco de acreción con vetas (para que se note el giro)
 function diskTexture() {
   const size = 256;
   const c = document.createElement("canvas");
@@ -73,7 +71,6 @@ function diskTexture() {
   ctx.beginPath();
   ctx.arc(size / 2, size / 2, size / 2, 0, TWO_PI);
   ctx.fill();
-  // vetas radiales tenues
   ctx.globalCompositeOperation = "lighter";
   for (let i = 0; i < 26; i++) {
     const a = (i / 26) * TWO_PI + Math.random() * 0.1;
@@ -116,18 +113,14 @@ function hitSphere(radius, astroData, titulo) {
   return m;
 }
 
-// agujero negro estilo Interstellar
 function makeBlackHole(size) {
   const group = new THREE.Group();
-
-  // horizonte de sucesos (esfera negra)
   const hole = new THREE.Mesh(
     new THREE.SphereGeometry(size, 24, 24),
     new THREE.MeshBasicMaterial({ color: 0x000000 })
   );
   group.add(hole);
 
-  // disco de acreción (girando), ligeramente inclinado
   const diskHolder = new THREE.Group();
   diskHolder.rotation.x = Math.PI / 2 - 0.22;
   const disk = new THREE.Mesh(
@@ -143,7 +136,6 @@ function makeBlackHole(size) {
   diskHolder.add(disk);
   group.add(diskHolder);
 
-  // anillo de luz que SIEMPRE mira a la cámara (la luz lensada)
   const photon = new THREE.Sprite(
     new THREE.SpriteMaterial({
       map: photonRingTex,
@@ -164,8 +156,8 @@ export function buildAstros(scene) {
 
   const clickables = [];
   const instances = [];
+  const moons = []; // lunas a animar
 
-  // colocación automática (deja todo bien repartido por el disco)
   function autoOrbit() {
     const radio = 2.6 + Math.random() * 7.2;
     const fase = Math.random() * TWO_PI;
@@ -175,31 +167,75 @@ export function buildAstros(scene) {
     return { radio, velocidad, fase, inclinacion };
   }
 
+  // Añade anillos y/o lunas a un planeta (o planeta de sistema)
+  function decorate(parent, r, def) {
+    // --- anillo ---
+    const wantRing = def && def.anillo != null ? def.anillo : Math.random() < 0.28;
+    if (wantRing) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(r * 1.5, r * 2.5, 48),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color(def?.anilloColor || "#dcc9a0"),
+          transparent: true,
+          opacity: 0.55,
+          side: THREE.DoubleSide,
+        })
+      );
+      ring.rotation.x = Math.PI / 2 - (0.3 + Math.random() * 0.5);
+      ring.rotation.y = Math.random() * Math.PI;
+      parent.add(ring);
+    }
+    // --- lunas (1 a 5) ---
+    let n = def && def.lunas != null ? def.lunas : Math.random() < 0.45 ? 1 + Math.floor(Math.random() * 5) : 0;
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Group();
+      parent.add(m);
+      const moon = new THREE.Mesh(
+        new THREE.SphereGeometry(r * (0.28 + Math.random() * 0.18), 10, 10),
+        new THREE.MeshStandardMaterial({
+          color: 0xc9ccd6,
+          roughness: 0.95,
+          metalness: 0.0,
+          emissive: 0x222233,
+          emissiveIntensity: 0.25,
+        })
+      );
+      m.add(moon);
+      moons.push({
+        g: m,
+        r: r * (2.0 + i * 0.7 + Math.random() * 0.5),
+        v: (0.6 + Math.random() * 1.2) * (Math.random() < 0.5 ? 1 : -1),
+        ph: Math.random() * TWO_PI,
+        incl: (Math.random() - 0.5) * 0.7,
+      });
+    }
+  }
+
   for (const a of CONTENT.astros) {
     const node = new THREE.Group();
     root.add(node);
 
-    const baseSize = (a.tamano || tipoSize(a.tipo)) * ESC;
-    const inst = { data: a, node, type: a.tipo, radius: baseSize, glows: [] };
+    const inst = { data: a, node, type: a.tipo, radius: 0.1 * ESC, glows: [] };
 
     if (a.tipo === "estrella" || a.tipo === "sistema") {
-      const r = (a.tipo === "sistema" ? 0.12 : 0.07) * ESC;
+      const r = a.tipo === "sistema" ? 0.13 : 0.07 * ESC; // el sol del sistema se ve un poco más
       const core = new THREE.Mesh(
         new THREE.SphereGeometry(r, 16, 16),
         new THREE.MeshBasicMaterial({ color: new THREE.Color(a.color || "#ffe6a0") })
       );
       node.add(core);
-      const g = glowSprite(a.color || "#ffe6a0", (a.tipo === "sistema" ? 0.8 : 0.6) * ESC);
+      const g = glowSprite(a.color || "#ffe6a0", a.tipo === "sistema" ? 0.85 : 0.6 * ESC);
       node.add(g);
       inst.glows.push({ s: g, base: g.scale.x, ph: Math.random() * TWO_PI, sp: 1.5 + Math.random() });
       inst.radius = r;
     } else if (a.tipo === "agujero") {
-      const bh = makeBlackHole(0.16 * ESC);
+      // tamaño variado: desde diminuto (como una luna) hasta mediano
+      const size = (a.tamano != null ? a.tamano : 0.05 + Math.random() * 0.13) * ESC;
+      const bh = makeBlackHole(size);
       node.add(bh.group);
       inst.disk = bh.disk;
-      inst.radius = 0.16 * ESC;
+      inst.radius = size;
     } else {
-      // planeta pequeño
       const r = 0.1 * ESC;
       const planet = new THREE.Mesh(
         new THREE.SphereGeometry(r, 18, 18),
@@ -216,11 +252,12 @@ export function buildAstros(scene) {
       node.add(g);
       inst.glows.push({ s: g, base: g.scale.x, ph: Math.random() * TWO_PI, sp: 1.5 + Math.random() });
       inst.radius = r;
+      decorate(node, r, a); // lunas y/o anillo
     }
 
-    // área de toque (amplia aunque el astro sea pequeño)
+    // área de toque (amplia para que sea fácil pulsar)
     if (a.contenido) {
-      const hit = hitSphere(0.55 * ESC, a, a.titulo);
+      const hit = hitSphere(Math.max(0.42, 0.6 * ESC), a, a.titulo);
       node.add(hit);
       clickables.push(hit);
     }
@@ -229,32 +266,34 @@ export function buildAstros(scene) {
     if (a.tipo === "sistema" && Array.isArray(a.planetas)) {
       inst.planetas = [];
       a.planetas.forEach((pl, idx) => {
-        const radio = pl.radio || 0.4 + idx * 0.32;
-        const velocidad = pl.velocidad || 0.5 - idx * 0.12;
+        const radio = pl.radio || 0.45 + idx * 0.35;
+        const velocidad = pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08);
         const fase = pl.fase ?? Math.random() * TWO_PI;
+        const childR = pl.tamano || 0.06;
 
         const pnode = new THREE.Group();
         node.add(pnode);
         const mesh = new THREE.Mesh(
-          new THREE.SphereGeometry(0.05 * ESC, 14, 14),
+          new THREE.SphereGeometry(childR, 16, 16),
           new THREE.MeshStandardMaterial({
             color: new THREE.Color(pl.color || "#9fc0ff"),
             roughness: 0.8,
             metalness: 0.1,
             emissive: new THREE.Color(pl.color || "#9fc0ff"),
-            emissiveIntensity: 0.3,
+            emissiveIntensity: 0.28,
           })
         );
         pnode.add(mesh);
+        decorate(pnode, childR, pl); // lunas/anillos de los planetas del sistema
 
         const orbit = new THREE.Mesh(
-          new THREE.RingGeometry(radio - 0.006, radio + 0.006, 64),
+          new THREE.RingGeometry(radio - 0.006, radio + 0.006, 80),
           new THREE.MeshBasicMaterial({ color: 0x9fb6ff, transparent: true, opacity: 0.1, side: THREE.DoubleSide })
         );
         orbit.rotation.x = Math.PI / 2;
         node.add(orbit);
 
-        const phit = hitSphere(0.32 * ESC, pl, pl.titulo);
+        const phit = hitSphere(Math.max(0.28, 0.4 * ESC), pl, pl.titulo);
         pnode.add(phit);
         clickables.push(phit);
 
@@ -275,10 +314,6 @@ export function buildAstros(scene) {
     }
 
     instances.push(inst);
-  }
-
-  function tipoSize(tipo) {
-    return tipo === "agujero" ? 0.16 : tipo === "sistema" ? 0.12 : 0.1;
   }
 
   function obstacles(self) {
@@ -327,22 +362,25 @@ export function buildAstros(scene) {
         inst.node.position.copy(inst.pos);
       }
 
-      // disco de acreción del agujero negro: giro tipo Interstellar
       if (inst.disk) inst.disk.rotation.z = elapsed * 0.6;
 
-      // parpadeo suave de estrellas/planetas
       for (const g of inst.glows) {
         const k = 1 + 0.18 * Math.sin(elapsed * g.sp + g.ph);
         g.s.scale.set(g.base * k, g.base * k, 1);
       }
 
-      // planetas de sistemas
       if (inst.planetas) {
         for (const p of inst.planetas) {
           const ang = p.data.fase + elapsed * p.data.velocidad;
           p.pnode.position.set(Math.cos(ang) * p.data.radio, 0, Math.sin(ang) * p.data.radio);
         }
       }
+    }
+
+    // lunas
+    for (const m of moons) {
+      const ang = m.ph + elapsed * m.v;
+      m.g.position.set(Math.cos(ang) * m.r, Math.sin(ang) * m.r * m.incl, Math.sin(ang) * m.r);
     }
   }
 

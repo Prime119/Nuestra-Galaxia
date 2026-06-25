@@ -14,7 +14,7 @@
    ============================================================ */
 
 export const CONTENT = {
-  escala: 0.8, // tamaño global de los astros
+  escala: 0.56, // tamaño global de los astros
 
   astros: [
   { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
@@ -111,5 +111,24 @@ export const CONTENT = {
   { tipo: "planeta", titulo: "Astro 88", color: "#7fb0ff", contenido: { tipo: "imagen", url: "" }, errante: true },
   { tipo: "estrella", titulo: "Astro 89", color: "#9fe0c0", contenido: { tipo: "video", url: "" } },
   { tipo: "planeta", titulo: "Astro 90", color: "#c9a6ff", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 90)..." } },
+
+    // ---------- NUESTRO SISTEMA SOLAR (real) ----------
+    {
+      tipo: "sistema",
+      titulo: "Nuestro Sistema Solar",
+      color: "#ffcf6b",
+      orbita: { radio: 6.5, velocidad: 0.014, fase: 1.2, inclinacion: 0.1 },
+      contenido: { tipo: "poema", texto: "Nuestro hogar entre las estrellas." },
+      planetas: [
+        { titulo: "Mercurio", color: "#b0a090", tamano: 0.05, radio: 0.5, velocidad: 0.9, contenido: { tipo: "poema", texto: "Mercurio..." } },
+        { titulo: "Venus", color: "#e8c27a", tamano: 0.07, radio: 0.75, velocidad: 0.72, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Tierra", color: "#4f8fe0", tamano: 0.075, radio: 1.05, velocidad: 0.6, lunas: 1, contenido: { tipo: "poema", texto: "Aquí empezó todo." } },
+        { titulo: "Marte", color: "#d05a3a", tamano: 0.06, radio: 1.35, velocidad: 0.5, lunas: 2, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Júpiter", color: "#d8a878", tamano: 0.16, radio: 1.95, velocidad: 0.32, lunas: 4, contenido: { tipo: "video", url: "" } },
+        { titulo: "Saturno", color: "#e0c98a", tamano: 0.14, radio: 2.5, velocidad: 0.26, anillo: true, lunas: 3, contenido: { tipo: "imagen", url: "" } },
+        { titulo: "Urano", color: "#9fe0e8", tamano: 0.1, radio: 2.95, velocidad: 0.2, anillo: true, contenido: { tipo: "poema", texto: "Urano..." } },
+        { titulo: "Neptuno", color: "#3f63d0", tamano: 0.1, radio: 3.35, velocidad: 0.16, lunas: 1, contenido: { tipo: "poema", texto: "Neptuno..." } },
+      ],
+    },
   ],
 };
