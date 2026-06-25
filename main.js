@@ -373,22 +373,29 @@ function unfocusAstro() {
 function openCard(astro) {
   cardTitle.textContent = astro.titulo || "";
   cardBody.innerHTML = buildContentHTML(astro);
-  card.classList.add("show");
+  card.classList.remove("show"); // estado inicial: pequeño, dentro del astro
+  void card.offsetWidth; // forzar reflow
+  // emerge tras un instante (cuando la cámara ya se acercó)
+  clearTimeout(card._t);
+  card._t = setTimeout(() => {
+    if (focus.active) card.classList.add("show");
+  }, 320);
 }
 
 function hideCard() {
+  clearTimeout(card._t);
   card.classList.remove("show");
-  card.style.opacity = "";
+  card.style.visibility = "";
   cardBody.innerHTML = "";
 }
 
 function positionCard(worldPos) {
   _proj.copy(worldPos).project(camera);
   if (_proj.z > 1) {
-    card.style.opacity = "0";
+    card.style.visibility = "hidden";
     return;
   }
-  card.style.opacity = "1";
+  card.style.visibility = "visible";
   const x = (_proj.x * 0.5 + 0.5) * window.innerWidth;
   const y = (-_proj.y * 0.5 + 0.5) * window.innerHeight;
   card.style.left = x + "px";
