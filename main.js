@@ -349,7 +349,7 @@ function closeModal() {
 // se desvanece con una explosión tipo supernova (NO afecta a la galaxia).
 const hearts = [];
 const flashes = [];
-const HEART = { form: 1.3, hold: 1.0, boom: 1.4 };
+const HEART = { form: 1.4, hold: 3.0, boom: 1.5, y: 5.5 };
 
 function easeOut(x) {
   return 1 - Math.pow(1 - x, 3);
@@ -358,6 +358,7 @@ function easeOut(x) {
 function spawnHeart() {
   const n = 750;
   const cur = new Float32Array(n * 3);
+  const start = new Float32Array(n * 3);
   const target = new Float32Array(n * 3);
   const dir = new Float32Array(n * 3);
   const delay = new Float32Array(n);
@@ -366,29 +367,42 @@ function spawnHeart() {
   const pinkB = new THREE.Color("#ff3d86");
   const tmp = new THREE.Color();
 
+  // Plano que mira a la cámara, centrado ARRIBA de la galaxia
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+  const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+  const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(camera.quaternion);
+  const center = new THREE.Vector3(0, HEART.y, 0);
+  const v = new THREE.Vector3();
+
   for (let i = 0; i < n; i++) {
     const i3 = i * 3;
     const t = Math.random() * Math.PI * 2;
     const fill = Math.sqrt(Math.random());
     const hx = 16 * Math.pow(Math.sin(t), 3);
     const hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-    const tx = hx * fill * 0.085;
-    const ty = hy * fill * 0.085 + 0.15;
-    const tz = (Math.random() - 0.5) * 0.12;
-    target[i3] = tx;
-    target[i3 + 1] = ty;
-    target[i3 + 2] = tz;
+    const lx = hx * fill * 0.085;
+    const ly = hy * fill * 0.085;
+    const lz = (Math.random() - 0.5) * 0.12;
+    // objetivo (en el mundo): el corazón flotando ARRIBA de la galaxia
+    v.copy(center).addScaledVector(right, lx).addScaledVector(up, ly).addScaledVector(normal, lz);
+    target[i3] = v.x;
+    target[i3 + 1] = v.y;
+    target[i3 + 2] = v.z;
 
-    // empiezan en el centro
-    cur[i3] = (Math.random() - 0.5) * 0.05;
-    cur[i3 + 1] = (Math.random() - 0.5) * 0.05;
-    cur[i3 + 2] = (Math.random() - 0.5) * 0.05;
+    // empiezan en el CENTRO de la galaxia y suben formando el corazón
+    start[i3] = (Math.random() - 0.5) * 0.5;
+    start[i3 + 1] = (Math.random() - 0.5) * 0.5;
+    start[i3 + 2] = (Math.random() - 0.5) * 0.5;
+    cur[i3] = start[i3];
+    cur[i3 + 1] = start[i3 + 1];
+    cur[i3 + 2] = start[i3 + 2];
 
-    // dirección de la explosión (hacia afuera) + algo de azar
-    const len = Math.hypot(tx, ty, tz) || 1;
-    dir[i3] = tx / len + (Math.random() - 0.5) * 0.5;
-    dir[i3 + 1] = ty / len + (Math.random() - 0.5) * 0.5;
-    dir[i3 + 2] = tz / len + (Math.random() - 0.5) * 0.5;
+    // dirección de explosión: hacia afuera desde el centro del corazón
+    const dx = v.x - center.x, dy = v.y - center.y, dz = v.z - center.z;
+    const len = Math.hypot(dx, dy, dz) || 1;
+    dir[i3] = dx / len + (Math.random() - 0.5) * 0.5;
+    dir[i3 + 1] = dy / len + (Math.random() - 0.5) * 0.5;
+    dir[i3 + 2] = dz / len + (Math.random() - 0.5) * 0.5;
 
     delay[i] = Math.random() * 0.45;
 
@@ -413,7 +427,7 @@ function spawnHeart() {
   });
   const obj = new THREE.Points(geo, mat);
   scene.add(obj);
-  hearts.push({ obj, born: elapsedTime, target, dir, delay, n, boomed: false });
+  hearts.push({ obj, born: elapsedTime, start, target, dir, delay, n, boomed: false, center });
 }
 
 function spawnFlash() {
@@ -427,7 +441,7 @@ function spawnFlash() {
       opacity: 0.9,
     })
   );
-  s.position.set(0, 0.15, 0);
+  s.position.set(0, HEART.y, 0);
   s.scale.set(0.5, 0.5, 1);
   scene.add(s);
   flashes.push({ obj: s, born: elapsedTime, dur: 0.9 });
@@ -438,17 +452,16 @@ function updateHearts(elapsed) {
   for (let i = hearts.length - 1; i >= 0; i--) {
     const h = hearts[i];
     const age = elapsed - h.born;
-    h.obj.quaternion.copy(camera.quaternion);
     const pos = h.obj.geometry.attributes.position.array;
 
     if (age < boomStart) {
-      // formación (salen del centro) + sostener
+      // formación: suben del centro y forman el corazón arriba; luego se mantiene
       for (let j = 0; j < h.n; j++) {
         const j3 = j * 3;
         const f = easeOut(Math.min(1, Math.max(0, (age - h.delay[j]) / (HEART.form * 0.7))));
-        pos[j3] = h.target[j3] * f;
-        pos[j3 + 1] = h.target[j3 + 1] * f;
-        pos[j3 + 2] = h.target[j3 + 2] * f;
+        pos[j3] = h.start[j3] + (h.target[j3] - h.start[j3]) * f;
+        pos[j3 + 1] = h.start[j3 + 1] + (h.target[j3 + 1] - h.start[j3 + 1]) * f;
+        pos[j3 + 2] = h.start[j3 + 2] + (h.target[j3 + 2] - h.start[j3 + 2]) * f;
       }
       h.obj.material.opacity = 1;
     } else {
