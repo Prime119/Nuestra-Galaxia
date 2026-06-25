@@ -18,7 +18,17 @@
 
   <!-- Pista de exploración -->
   <div id="hint">
-    <span>Arrastra para mirar &nbsp;·&nbsp; Pellizca o rueda para acercarte</span>
+    <span>Arrastra para mirar &nbsp;·&nbsp; Pellizca o rueda para acercarte &nbsp;·&nbsp; Toca un astro</span>
+  </div>
+
+  <!-- Ventana de contenido -->
+  <div id="modal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <button id="modal-close" class="modal-close" aria-label="Cerrar">&times;</button>
+      <h2 id="modal-title"></h2>
+      <div id="modal-body" class="modal-body"></div>
+    </div>
   </div>
 
   <script type="importmap">

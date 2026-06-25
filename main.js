@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { buildAstros } from "./astros.js";
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
@@ -225,6 +226,195 @@ function buildBackgroundStars() {
 }
 buildBackgroundStars();
 
+// --- Luces (para que los planetas tengan volumen) ---------------------------
+scene.add(new THREE.AmbientLight(0x556088, 0.7));
+const sunLight = new THREE.PointLight(0xfff0d8, 1.2, 0, 0.9);
+sunLight.position.set(0, 0, 0);
+scene.add(sunLight);
+const keyLight = new THREE.DirectionalLight(0xbcd0ff, 0.6);
+keyLight.position.set(6, 10, 8);
+scene.add(keyLight);
+
+// --- Astros clickeables -----------------------------------------------------
+const astros = buildAstros(scene);
+
+// --- Toque en el CENTRO de la galaxia (corazón rosa) ------------------------
+const coreHit = new THREE.Mesh(
+  new THREE.SphereGeometry(1.4, 16, 16),
+  new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+);
+coreHit.userData.isCore = true;
+scene.add(coreHit);
+
+// --- Interacción: raycaster + detección de toque/click ----------------------
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const clickTargets = [coreHit, ...astros.clickables];
+
+let downX = 0,
+  downY = 0,
+  downT = 0;
+
+canvas.addEventListener("pointerdown", (e) => {
+  downX = e.clientX;
+  downY = e.clientY;
+  downT = performance.now();
+});
+
+canvas.addEventListener("pointerup", (e) => {
+  const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+  const elapsed = performance.now() - downT;
+  if (moved < 9 && elapsed < 600) handleTap(e.clientX, e.clientY);
+});
+
+function handleTap(cx, cy) {
+  pointer.x = (cx / window.innerWidth) * 2 - 1;
+  pointer.y = -(cy / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(clickTargets, false);
+  if (!hits.length) return;
+  const obj = hits[0].object;
+  if (obj.userData.isCore) {
+    spawnHeart();
+  } else if (obj.userData.astro) {
+    openModal(obj.userData.astro);
+  }
+}
+
+// --- Ventana de contenido ---------------------------------------------------
+const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modal-title");
+const modalBody = document.getElementById("modal-body");
+document.getElementById("modal-close").addEventListener("click", closeModal);
+modal.querySelector(".modal-backdrop").addEventListener("click", closeModal);
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[m]));
+}
+
+// Convierte enlaces de Google Drive a formato directo/incrustable
+function driveId(url) {
+  const m = url.match(/\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
+  return m ? m[1] : null;
+}
+function imageUrl(url) {
+  const id = url.includes("drive.google") ? driveId(url) : null;
+  return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+}
+function videoEmbed(url) {
+  // YouTube
+  const yt = url.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
+  if (yt) {
+    return `<div class="video-wrap"><iframe src="https://www.youtube.com/embed/${yt[1]}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+  }
+  // Google Drive
+  if (url.includes("drive.google")) {
+    const id = driveId(url);
+    if (id) return `<div class="video-wrap"><iframe src="https://drive.google.com/file/d/${id}/preview" allowfullscreen></iframe></div>`;
+  }
+  // Archivo de video directo
+  return `<video controls playsinline src="${url}"></video>`;
+}
+
+function openModal(astro) {
+  const c = astro.contenido || {};
+  modalTitle.textContent = astro.titulo || "";
+  let html = "";
+  if (c.tipo === "poema") {
+    html = `<div class="poema">${escapeHtml(c.texto || "")}</div>`;
+  } else if (c.tipo === "imagen") {
+    html = c.url
+      ? `<img src="${imageUrl(c.url)}" alt="${escapeHtml(astro.titulo || "")}">`
+      : `<div class="empty">Aún no has puesto una imagen aquí.</div>`;
+  } else if (c.tipo === "video") {
+    html = c.url ? videoEmbed(c.url) : `<div class="empty">Aún no has puesto un video aquí.</div>`;
+  }
+  modalBody.innerHTML = html;
+  modal.classList.add("open");
+}
+
+function closeModal() {
+  modal.classList.remove("open");
+  modalBody.innerHTML = "";
+}
+
+// --- Corazón de estrellas rosa (al tocar el centro) -------------------------
+const hearts = [];
+function makeHeartPoints() {
+  const n = 600;
+  const positions = new Float32Array(n * 3);
+  const colors = new Float32Array(n * 3);
+  const pinkA = new THREE.Color("#ff9ec4");
+  const pinkB = new THREE.Color("#ff4d94");
+  const tmp = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const t = Math.random() * Math.PI * 2;
+    const fill = Math.sqrt(Math.random());
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y =
+      13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    const i3 = i * 3;
+    positions[i3] = x * fill * 0.09 + (Math.random() - 0.5) * 0.05;
+    positions[i3 + 1] = y * fill * 0.09 + (Math.random() - 0.5) * 0.05;
+    positions[i3 + 2] = (Math.random() - 0.5) * 0.1;
+    tmp.copy(pinkA).lerp(pinkB, Math.random());
+    colors[i3] = tmp.r;
+    colors[i3 + 1] = tmp.g;
+    colors[i3 + 2] = tmp.b;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const mat = new THREE.PointsMaterial({
+    size: 0.22,
+    sizeAttenuation: true,
+    vertexColors: true,
+    map: starTexture,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    opacity: 1,
+  });
+  return new THREE.Points(geo, mat);
+}
+
+function spawnHeart() {
+  const h = makeHeartPoints();
+  h.position.set(0, 0, 0);
+  scene.add(h);
+  hearts.push({ obj: h, born: elapsedTime });
+}
+
+function updateHearts(elapsed) {
+  for (let i = hearts.length - 1; i >= 0; i--) {
+    const hrt = hearts[i];
+    const age = elapsed - hrt.born;
+    // siempre mirando a la cámara
+    hrt.obj.quaternion.copy(camera.quaternion);
+    // aparece (0-1s), sube y se desvanece (3-6s)
+    const grow = Math.min(1, age / 0.9);
+    const s = 1.1 + (1 - Math.pow(1 - grow, 3)) * 1.6;
+    hrt.obj.scale.setScalar(s);
+    hrt.obj.position.y = age * 0.25;
+    let op = 1;
+    if (age > 3) op = Math.max(0, 1 - (age - 3) / 3);
+    hrt.obj.material.opacity = op;
+    if (age > 6.2) {
+      scene.remove(hrt.obj);
+      hrt.obj.geometry.dispose();
+      hrt.obj.material.dispose();
+      hearts.splice(i, 1);
+    }
+  }
+}
+
+
 // --- Post-procesado: bloom suave (sin quemar la imagen) ---------------------
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
@@ -238,17 +428,24 @@ composer.addPass(bloom);
 
 // --- Animación --------------------------------------------------------------
 const clock = new THREE.Clock();
+let elapsedTime = 0;
 
 function animate() {
   requestAnimationFrame(animate);
-  const elapsed = clock.getElapsedTime();
+  const delta = clock.getDelta();
+  elapsedTime += delta;
+  const elapsed = elapsedTime;
 
-  // La galaxia gira lentamente, como una de verdad (velocidad reducida 10%)
-  galaxyGroup.rotation.y = elapsed * 0.0405;
+  // La galaxia gira lentamente (velocidad reducida un 15% adicional)
+  galaxyGroup.rotation.y = elapsed * 0.034425;
 
   // Latido suave del núcleo
   const pulse = 7 + Math.sin(elapsed * 1.2) * 0.25;
   coreGlow.scale.set(pulse, pulse, 1);
+
+  // Astros y corazones
+  astros.update(elapsed, delta);
+  updateHearts(elapsed);
 
   controls.update();
   composer.render();

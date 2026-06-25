@@ -85,3 +85,123 @@ html, body {
 #hint.fade {
   opacity: 0;
 }
+
+
+/* ===== Ventana de contenido (modal) ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  padding: 22px;
+}
+
+.modal.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 2, 10, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.modal-card {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  width: 100%;
+  max-height: 82vh;
+  overflow-y: auto;
+  background: linear-gradient(160deg, rgba(28, 24, 54, 0.96), rgba(12, 12, 30, 0.96));
+  border: 1px solid rgba(160, 150, 220, 0.25);
+  border-radius: 18px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.6), 0 0 40px rgba(150, 120, 220, 0.15);
+  padding: 30px 28px 34px;
+  transform: translateY(16px) scale(0.98);
+  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.modal.open .modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8e8ff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+#modal-title {
+  font-size: 22px;
+  font-weight: normal;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(180, 150, 255, 0.4);
+  padding-right: 30px;
+}
+
+.modal-body {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #dcdcf5;
+}
+
+.modal-body .poema {
+  font-style: italic;
+  white-space: pre-wrap;
+  font-size: 17px;
+  line-height: 1.9;
+}
+
+.modal-body img,
+.modal-body video {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+
+.modal-body .video-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-body .video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.modal-body .empty {
+  opacity: 0.6;
+  font-style: italic;
+  text-align: center;
+  padding: 24px 0;
+}
