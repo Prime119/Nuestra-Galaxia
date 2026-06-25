@@ -12,6 +12,8 @@ import { CONTENT } from "./content.js";
 const MAX_R = 10.5;
 const TWO_PI = Math.PI * 2;
 const ESC = CONTENT.escala || 1.0;
+const SYS_ORBIT = 0.5; // achica las órbitas de los sistemas solares (~80% más pequeños)
+const SYS_PSIZE = 0.45; // tamaño de los planetas de un sistema (siempre menor que su sol)
 
 // ---------- texturas ----------
 function radialTexture(stops) {
@@ -218,25 +220,25 @@ export function buildAstros(scene) {
     const inst = { data: a, node, type: a.tipo, radius: 0.1 * ESC, glows: [] };
 
     if (a.tipo === "estrella" || a.tipo === "sistema") {
-      const r = a.tipo === "sistema" ? 0.13 : 0.07 * ESC; // el sol del sistema se ve un poco más
+      const r = 0.085 * ESC; // estrellas y soles: los astros más grandes
       const core = new THREE.Mesh(
         new THREE.SphereGeometry(r, 16, 16),
         new THREE.MeshBasicMaterial({ color: new THREE.Color(a.color || "#ffe6a0") })
       );
       node.add(core);
-      const g = glowSprite(a.color || "#ffe6a0", a.tipo === "sistema" ? 0.85 : 0.6 * ESC);
+      const g = glowSprite(a.color || "#ffe6a0", (a.tipo === "sistema" ? 0.55 : 0.7) * ESC);
       node.add(g);
       inst.glows.push({ s: g, base: g.scale.x, ph: Math.random() * TWO_PI, sp: 1.5 + Math.random() });
       inst.radius = r;
     } else if (a.tipo === "agujero") {
       // tamaño variado: desde diminuto (como una luna) hasta mediano
-      const size = (a.tamano != null ? a.tamano : 0.05 + Math.random() * 0.13) * ESC;
+      const size = (a.tamano != null ? a.tamano : 0.04 + Math.random() * 0.1) * ESC;
       const bh = makeBlackHole(size);
       node.add(bh.group);
       inst.disk = bh.disk;
       inst.radius = size;
     } else {
-      const r = 0.1 * ESC;
+      const r = 0.04 * ESC; // planetas: SIEMPRE más pequeños que las estrellas
       const planet = new THREE.Mesh(
         new THREE.SphereGeometry(r, 18, 18),
         new THREE.MeshStandardMaterial({
@@ -248,7 +250,7 @@ export function buildAstros(scene) {
         })
       );
       node.add(planet);
-      const g = glowSprite(a.color || "#7fb0ff", 0.34 * ESC, 0.5);
+      const g = glowSprite(a.color || "#7fb0ff", 0.16 * ESC, 0.45);
       node.add(g);
       inst.glows.push({ s: g, base: g.scale.x, ph: Math.random() * TWO_PI, sp: 1.5 + Math.random() });
       inst.radius = r;
@@ -266,10 +268,10 @@ export function buildAstros(scene) {
     if (a.tipo === "sistema" && Array.isArray(a.planetas)) {
       inst.planetas = [];
       a.planetas.forEach((pl, idx) => {
-        const radio = pl.radio || 0.45 + idx * 0.35;
+        const radio = (pl.radio || 0.45 + idx * 0.35) * SYS_ORBIT * ESC;
         const velocidad = pl.velocidad || Math.max(0.12, 0.7 - idx * 0.08);
         const fase = pl.fase ?? Math.random() * TWO_PI;
-        const childR = pl.tamano || 0.06;
+        const childR = (pl.tamano || 0.06) * SYS_PSIZE * ESC; // siempre menor que el sol
 
         const pnode = new THREE.Group();
         node.add(pnode);
@@ -293,7 +295,7 @@ export function buildAstros(scene) {
         orbit.rotation.x = Math.PI / 2;
         node.add(orbit);
 
-        const phit = hitSphere(Math.max(0.28, 0.4 * ESC), pl, pl.titulo);
+        const phit = hitSphere(0.1, pl, pl.titulo);
         pnode.add(phit);
         clickables.push(phit);
 

@@ -14,7 +14,7 @@
    ============================================================ */
 
 export const CONTENT = {
-  escala: 0.56, // tamaño global de los astros
+  escala: 0.42, // tamaño global de los astros
 
   astros: [
   { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
