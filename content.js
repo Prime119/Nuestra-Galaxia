@@ -16,15 +16,15 @@
 export const CONTENT = {
   escala: 0.147, // tamaño global de los astros
 
-  // Contenido que aparece al ATRAPAR una estrella fugaz (va rotando entre estas).
-  // Edita igual que los astros: poema / imagen / video.
+  // Mensajes de las 11:11 que aparecen al ATRAPAR una estrella fugaz (van rotando).
+  // Edita los textos a tu gusto.
   fugaces: [
-    { titulo: "Estrella fugaz", contenido: { tipo: "poema", texto: "Pide un deseo..." } },
-    { titulo: "Estrella fugaz", contenido: { tipo: "imagen", url: "" } },
-    { titulo: "Estrella fugaz", contenido: { tipo: "video", url: "" } },
-    { titulo: "Estrella fugaz", contenido: { tipo: "poema", texto: "Otro deseo para ti." } },
-    { titulo: "Estrella fugaz", contenido: { tipo: "imagen", url: "" } },
-    { titulo: "Estrella fugaz", contenido: { tipo: "poema", texto: "Cada estrella, un te quiero." } },
+    { titulo: "11:11", contenido: { tipo: "poema", texto: "11:11\nPedí el mismo deseo de siempre: tú." } },
+    { titulo: "11:11", contenido: { tipo: "poema", texto: "11:11\nCada vez que lo veo, pienso en ti." } },
+    { titulo: "11:11", contenido: { tipo: "poema", texto: "11:11\nMi deseo ya se cumplió cuando llegaste." } },
+    { titulo: "11:11", contenido: { tipo: "poema", texto: "11:11\nDe todos los deseos, tú eres mi favorito." } },
+    { titulo: "11:11", contenido: { tipo: "poema", texto: "11:11\nQue el universo nos siga alineando." } },
+    { titulo: "11:11", contenido: { tipo: "poema", texto: "11:11\nGracias por ser mi deseo hecho realidad." } },
   ],
 
   astros: [
