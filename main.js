@@ -78,9 +78,6 @@ const params = {
   spin: 1.15,
   randomness: 0.32,
   randomnessPower: 2.6,
-  insideColor: "#ffd9a0", // núcleo cálido
-  midColor: "#c77bd8", // brazos púrpura
-  outsideColor: "#3a7bff", // bordes azules
   height: 0.55, // grosor del disco
 };
 
@@ -90,9 +87,17 @@ function buildGalaxy() {
   const colors = new Float32Array(params.count * 3);
   const scales = new Float32Array(params.count);
 
-  const cInside = new THREE.Color(params.insideColor);
-  const cMid = new THREE.Color(params.midColor);
-  const cOutside = new THREE.Color(params.outsideColor);
+  // Paleta tipo galaxia real:
+  // núcleo amarillo -> naranja (con pequeñas zonas rojas)
+  // brazos azul marino brillante -> azul claro -> blanco (estilo Avatar)
+  const cYellow = new THREE.Color("#ffe39a");
+  const cOrange = new THREE.Color("#ff7a1f");
+  const cRed = new THREE.Color("#ff3b22");
+  const cMarine = new THREE.Color("#0f3a8c"); // azul marino brillante
+  const cBlue = new THREE.Color("#2e86ff"); // azul brillante (Avatar)
+  const cLight = new THREE.Color("#dff1ff"); // azul muy claro / casi blanco
+  const cWhite = new THREE.Color("#ffffff");
+  const tmp = new THREE.Color();
 
   for (let i = 0; i < params.count; i++) {
     const i3 = i * 3;
@@ -114,21 +119,29 @@ function buildGalaxy() {
     positions[i3 + 1] = ry;
     positions[i3 + 2] = Math.sin(branchAngle + spinAngle) * radius + rz;
 
-    // Color: del cálido (centro) al púrpura y luego azul (borde)
-    const mixed = new THREE.Color();
+    // Color tipo galaxia real
+    const mixed = tmp;
     const t = radius / params.radius;
-    if (t < 0.5) {
-      mixed.copy(cInside).lerp(cMid, t / 0.5);
+    const roll = Math.random();
+    if (t < 0.28) {
+      // Núcleo: amarillo -> naranja, con pequeñas zonas rojas
+      mixed.copy(cYellow).lerp(cOrange, t / 0.28);
+      if (roll < 0.06) mixed.copy(cRed);
     } else {
-      mixed.copy(cMid).lerp(cOutside, (t - 0.5) / 0.5);
+      // Brazos: azul marino -> azul brillante -> azul claro, con destellos
+      const k = (t - 0.28) / 0.72;
+      if (k < 0.5) mixed.copy(cMarine).lerp(cBlue, k / 0.5);
+      else mixed.copy(cBlue).lerp(cLight, (k - 0.5) / 0.5);
+      if (roll < 0.05) mixed.copy(cWhite); // destellos blancos brillantes
+      else if (roll < 0.065) mixed.copy(cRed); // alguna nebulosa roja en los brazos
     }
-    // Suavizamos el brillo hacia afuera para no deslumbrar
-    const dim = 0.55 + 0.45 * (1 - t);
+    // Brillo: centro más contenido para no deslumbrar
+    const dim = t < 0.28 ? 0.7 : 0.78 + 0.22 * (1 - (t - 0.28) / 0.72);
     colors[i3] = mixed.r * dim;
     colors[i3 + 1] = mixed.g * dim;
     colors[i3 + 2] = mixed.b * dim;
 
-    scales[i] = (0.6 + Math.random() * 0.8) * (1 - t * 0.4);
+    scales[i] = (0.6 + Math.random() * 0.8) * (1 - t * 0.35);
   }
 
   geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -158,10 +171,10 @@ function makeCoreGlow() {
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,250,235,1)");
-  g.addColorStop(0.2, "rgba(255,225,170,0.9)");
-  g.addColorStop(0.45, "rgba(255,170,200,0.5)");
-  g.addColorStop(0.75, "rgba(160,90,200,0.18)");
+  g.addColorStop(0, "rgba(255,248,220,0.85)");
+  g.addColorStop(0.2, "rgba(255,210,130,0.6)");
+  g.addColorStop(0.45, "rgba(255,150,60,0.28)");
+  g.addColorStop(0.75, "rgba(200,90,30,0.08)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -176,7 +189,7 @@ function makeCoreGlow() {
       depthWrite: false,
     })
   );
-  sprite.scale.set(7, 7, 1);
+  sprite.scale.set(4.8, 4.8, 1);
   return sprite;
 }
 const coreGlow = makeCoreGlow();
@@ -230,9 +243,9 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloom = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.85, // strength (intensidad)
+  0.6, // strength (intensidad) — más contenida
   0.7, // radius
-  0.2 // threshold (umbral alto = solo lo muy brillante brilla)
+  0.28 // threshold (umbral alto = solo lo muy brillante brilla)
 );
 composer.addPass(bloom);
 
@@ -243,11 +256,11 @@ function animate() {
   requestAnimationFrame(animate);
   const elapsed = clock.getElapsedTime();
 
-  // La galaxia gira lentamente, como una de verdad
-  galaxyGroup.rotation.y = elapsed * 0.045;
+  // La galaxia gira lentamente, como una de verdad (giro reducido 1%)
+  galaxyGroup.rotation.y = elapsed * 0.044550;
 
-  // Latido suave del núcleo
-  const pulse = 7 + Math.sin(elapsed * 1.2) * 0.25;
+  // Latido suave del núcleo (más contenido)
+  const pulse = 4.8 + Math.sin(elapsed * 1.2) * 0.2;
   coreGlow.scale.set(pulse, pulse, 1);
 
   controls.update();
