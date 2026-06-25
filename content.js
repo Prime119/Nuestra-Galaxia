@@ -16,6 +16,17 @@
 export const CONTENT = {
   escala: 0.147, // tamaño global de los astros
 
+  // Contenido que aparece al ATRAPAR una estrella fugaz (va rotando entre estas).
+  // Edita igual que los astros: poema / imagen / video.
+  fugaces: [
+    { titulo: "Estrella fugaz", contenido: { tipo: "poema", texto: "Pide un deseo..." } },
+    { titulo: "Estrella fugaz", contenido: { tipo: "imagen", url: "" } },
+    { titulo: "Estrella fugaz", contenido: { tipo: "video", url: "" } },
+    { titulo: "Estrella fugaz", contenido: { tipo: "poema", texto: "Otro deseo para ti." } },
+    { titulo: "Estrella fugaz", contenido: { tipo: "imagen", url: "" } },
+    { titulo: "Estrella fugaz", contenido: { tipo: "poema", texto: "Cada estrella, un te quiero." } },
+  ],
+
   astros: [
   { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
   { tipo: "planeta", titulo: "Astro 2", color: "#ff9ec4", contenido: { tipo: "video", url: "" } },

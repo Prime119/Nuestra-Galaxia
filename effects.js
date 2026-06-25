@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { CONTENT } from "./content.js";
 
 /* ============================================================
    EFECTOS del espacio (decorativos, no clickeables):
@@ -45,6 +46,10 @@ export function buildEffects(scene) {
   const glowTex = glowTexture();
   const group = new THREE.Group();
   scene.add(group);
+
+  const clickables = []; // estrellas fugaces que se pueden tocar
+  const fugaces = CONTENT.fugaces || [];
+  let fugazIdx = 0;
 
   // ---------------- COMETAS (núcleo de roca) ----------------
   const comets = [];
@@ -231,10 +236,27 @@ export function buildEffects(scene) {
       })
     );
     group.add(obj);
+    // un poco más lentas y duraderas para poder atraparlas
     const vel = new THREE.Vector3(Math.random() * 2 - 1, -(0.3 + Math.random() * 0.6), Math.random() * 2 - 1)
       .normalize()
-      .multiplyScalar(8 + Math.random() * 6);
-    meteors.push({ obj, pos, col, N, p: start.clone(), vel, life: 0, max: 1.0 + Math.random() * 0.7 });
+      .multiplyScalar(3.5 + Math.random() * 3);
+
+    // área de toque con contenido (deseo) que se puede pulsar
+    let hit = null;
+    if (fugaces.length) {
+      const content = fugaces[fugazIdx % fugaces.length];
+      fugazIdx++;
+      hit = new THREE.Mesh(
+        new THREE.SphereGeometry(0.6, 10, 10),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+      );
+      hit.userData.astro = content;
+      hit.position.copy(start);
+      group.add(hit);
+      clickables.push(hit);
+    }
+
+    meteors.push({ obj, pos, col, N, p: start.clone(), vel, life: 0, max: 2.6 + Math.random() * 1.6, hit });
   }
 
   function updateMeteors(delta) {
@@ -247,6 +269,7 @@ export function buildEffects(scene) {
       const m = meteors[i];
       m.life += delta;
       m.p.addScaledVector(m.vel, delta);
+      if (m.hit) m.hit.position.copy(m.p);
       // la estela SIGUE al meteoro: cada punto toma la posición del anterior
       for (let j = m.N - 1; j > 0; j--) {
         const j3 = j * 3, k3 = (j - 1) * 3;
@@ -271,6 +294,11 @@ export function buildEffects(scene) {
         group.remove(m.obj);
         m.obj.geometry.dispose();
         m.obj.material.dispose();
+        if (m.hit) {
+          group.remove(m.hit);
+          const ix = clickables.indexOf(m.hit);
+          if (ix >= 0) clickables.splice(ix, 1);
+        }
         meteors.splice(i, 1);
       }
     }
@@ -283,5 +311,5 @@ export function buildEffects(scene) {
     updateMeteors(dt);
   }
 
-  return { group, update };
+  return { group, clickables, update };
 }

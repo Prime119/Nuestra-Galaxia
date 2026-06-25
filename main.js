@@ -35,7 +35,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;
+renderer.toneMappingExposure = 0.85;
 
 // --- Controles de exploración (zoom + desplazamiento) -----------------------
 const controls = new OrbitControls(camera, canvas);
@@ -124,8 +124,8 @@ function buildGalaxy() {
     } else {
       mixed.copy(cMid).lerp(cOutside, (t - 0.5) / 0.5);
     }
-    // Suavizamos el brillo hacia afuera y bajamos un poco por densidad
-    const dim = (0.5 + 0.4 * (1 - t)) * 0.82;
+    // Suavizamos el brillo hacia afuera y bajamos más por densidad
+    const dim = (0.5 + 0.4 * (1 - t)) * 0.68;
     colors[i3] = mixed.r * dim;
     colors[i3 + 1] = mixed.g * dim;
     colors[i3 + 2] = mixed.b * dim;
@@ -205,10 +205,10 @@ function makeCoreGlow() {
   c.width = c.height = size;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, "rgba(255,250,235,0.4)");
-  g.addColorStop(0.2, "rgba(255,225,170,0.29)");
-  g.addColorStop(0.45, "rgba(255,170,200,0.13)");
-  g.addColorStop(0.75, "rgba(160,90,200,0.04)");
+  g.addColorStop(0, "rgba(255,250,235,0.3)");
+  g.addColorStop(0.2, "rgba(255,225,170,0.22)");
+  g.addColorStop(0.45, "rgba(255,170,200,0.1)");
+  g.addColorStop(0.75, "rgba(160,90,200,0.03)");
   g.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, size, size);
@@ -298,7 +298,6 @@ scene.add(coreHit);
 // --- Interacción: raycaster + detección de toque/click ----------------------
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
-const clickTargets = [coreHit, ...astros.clickables];
 
 let downX = 0,
   downY = 0,
@@ -320,7 +319,8 @@ function handleTap(cx, cy) {
   pointer.x = (cx / window.innerWidth) * 2 - 1;
   pointer.y = -(cy / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
-  const hits = raycaster.intersectObjects(clickTargets, false);
+  const targets = [coreHit, ...astros.clickables, ...effects.clickables];
+  const hits = raycaster.intersectObjects(targets, false);
   if (!hits.length) return;
   const obj = hits[0].object;
   if (obj.userData.isCore) {
