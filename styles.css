@@ -316,3 +316,9 @@ html, body {
   text-align: center;
   padding: 14px 0;
 }
+
+/* separación entre varios bloques de contenido apilados */
+.astro-card-body > * + *,
+.modal-body > * + * {
+  margin-top: 14px;
+}

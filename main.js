@@ -424,7 +424,8 @@ function driveId(url) {
 }
 function imageUrl(url) {
   const id = url.includes("drive.google") ? driveId(url) : null;
-  return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+  // El endpoint "thumbnail" es el más fiable para mostrar imágenes de Drive
+  return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w1600` : url;
 }
 function videoEmbed(url) {
   // YouTube
@@ -441,18 +442,28 @@ function videoEmbed(url) {
   return `<video controls playsinline src="${url}"></video>`;
 }
 
-function buildContentHTML(astro) {
-  const c = astro.contenido || {};
+// Dibuja UN bloque de contenido (poema, imagen o video)
+function renderBlock(c, astro) {
+  if (!c) return "";
   if (c.tipo === "poema") {
     return `<div class="poema">${escapeHtml(c.texto || "")}</div>`;
   } else if (c.tipo === "imagen") {
     return c.url
-      ? `<img src="${imageUrl(c.url)}" alt="${escapeHtml(astro.titulo || "")}">`
+      ? `<img src="${imageUrl(c.url)}" alt="${escapeHtml(astro.titulo || "")}" loading="lazy">`
       : `<div class="empty">Aún no has puesto una imagen aquí.</div>`;
   } else if (c.tipo === "video") {
     return c.url ? videoEmbed(c.url) : `<div class="empty">Aún no has puesto un video aquí.</div>`;
   }
   return "";
+}
+
+// El contenido puede ser UN bloque { tipo, ... } o VARIOS [ {..}, {..} ]
+function buildContentHTML(astro) {
+  const c = astro.contenido;
+  if (Array.isArray(c)) {
+    return c.map((b) => renderBlock(b, astro)).join("");
+  }
+  return renderBlock(c || {}, astro);
 }
 
 // --- Corazón de estrellas rosa (al tocar el centro) -------------------------

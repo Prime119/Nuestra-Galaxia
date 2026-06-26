@@ -28,7 +28,10 @@ export const CONTENT = {
   ],
 
   astros: [
-  { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: { tipo: "imagen", url: "" } },
+  { tipo: "estrella", titulo: "Astro 1", color: "#bcd8ff", contenido: [
+      { tipo: "poema", texto: "Desde que llegaste, los días tienen otro color,\ncomo si el cielo guardara un poco más de luz para mí.\nTu sonrisa tiene la extraña magia\nde convertir los momentos simples en recuerdos inolvidables." },
+      { tipo: "imagen", url: "https://drive.google.com/file/d/1cwcsR-Szs2F4pPYMOOWYH9Rb15RADffj/view?usp=drive_link" },
+    ] },
   { tipo: "planeta", titulo: "Astro 2", color: "#ff9ec4", contenido: { tipo: "video", url: "" } },
   { tipo: "estrella", titulo: "Astro 3", color: "#fff0c4", contenido: { tipo: "poema", texto: "Aquí va tu poema (Astro 3)..." } },
   { tipo: "planeta", titulo: "Astro 4", color: "#7fb0ff", contenido: { tipo: "imagen", url: "" } },
