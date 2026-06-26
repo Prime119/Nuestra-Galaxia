@@ -322,7 +322,7 @@ function handleTap(cx, cy) {
   const targets = [coreHit, ...astros.clickables, ...effects.clickables];
   const hits = raycaster.intersectObjects(targets, false);
   if (!hits.length) {
-    if (focus.active) unfocusAstro();
+    if (focus.state !== "idle") unfocusAstro();
     return;
   }
   const obj = hits[0].object;
@@ -339,34 +339,39 @@ const cardTitle = document.getElementById("astro-card-title");
 const cardBody = document.getElementById("astro-card-body");
 document.getElementById("astro-card-close").addEventListener("click", unfocusAstro);
 
-const focus = { active: false, obj: null, offset: new THREE.Vector3() };
+// Estados: "idle" (galaxia) | "approaching" (acercándose) | "orbit" (girando
+// alrededor del astro) | "returning" (regresando a la galaxia centrada)
+const focus = { state: "idle", obj: null, dist: 1 };
 const _ap = new THREE.Vector3();
+const _prevAp = new THREE.Vector3();
 const _desired = new THREE.Vector3();
-const _look = new THREE.Vector3();
+const _dir = new THREE.Vector3();
 const _proj = new THREE.Vector3();
+// vista de la galaxia guardada para poder regresar a ella
+const homePos = new THREE.Vector3();
+const homeTarget = new THREE.Vector3();
 
 function focusAstro(hitObj, astro) {
+  // guardar la vista actual de la galaxia SOLO si venimos de la vista normal
+  if (focus.state === "idle") {
+    homePos.copy(camera.position);
+    homeTarget.copy(controls.target);
+  }
   focus.obj = hitObj;
-  hitObj.getWorldPosition(_ap);
-  const dist = astro && astro.planetas ? 3.4 : 1.5; // los sistemas necesitan más distancia
-  _desired.copy(camera.position).sub(_ap);
-  if (_desired.lengthSq() < 1e-4) _desired.set(0, 0.4, 1);
-  _desired.normalize();
-  _desired.y = Math.max(_desired.y, 0) + 0.35; // un poco elevado para dejar hueco al marco
-  _desired.normalize().multiplyScalar(dist);
-  focus.offset.copy(_desired);
-  _look.copy(controls.target);
-  focus.active = true;
-  controls.enabled = false;
+  // distancia de acercamiento inicial (luego el usuario puede acercar/alejar).
+  // los sistemas solares necesitan algo más de distancia para ver sus planetas.
+  focus.dist = astro && astro.planetas ? 2.6 : 0.9;
+  hitObj.getWorldPosition(_prevAp);
+  focus.state = "approaching";
+  controls.enabled = false; // durante el acercamiento movemos la cámara a mano
   openCard(astro);
 }
 
 function unfocusAstro() {
-  if (!focus.active) return;
-  focus.active = false;
+  if (focus.state === "idle" || focus.state === "returning") return;
   focus.obj = null;
-  controls.target.copy(_look);
-  controls.enabled = true;
+  focus.state = "returning";
+  controls.enabled = false;
   hideCard();
 }
 
@@ -378,7 +383,7 @@ function openCard(astro) {
   // emerge tras un instante (cuando la cámara ya se acercó)
   clearTimeout(card._t);
   card._t = setTimeout(() => {
-    if (focus.active) card.classList.add("show");
+    if (focus.state === "approaching" || focus.state === "orbit") card.classList.add("show");
   }, 320);
 }
 
@@ -714,18 +719,62 @@ function animate() {
   updateHearts(elapsed);
   updateSupernovas(elapsed);
 
-  if (focus.active && focus.obj) {
-    // si el astro enfocado desapareció (p. ej. una estrella fugaz), soltar
-    if (!focus.obj.parent) {
+  if (focus.state === "approaching") {
+    // si el astro enfocado desapareció (p. ej. una estrella fugaz), regresar
+    if (!focus.obj || !focus.obj.parent) {
       unfocusAstro();
       controls.update();
     } else {
       focus.obj.getWorldPosition(_ap);
-      _desired.copy(_ap).add(focus.offset);
-      camera.position.lerp(_desired, 0.08);
-      _look.lerp(_ap, 0.12);
-      camera.lookAt(_look);
+      // dirección desde el astro hacia la cámara, un poco elevada
+      _dir.copy(camera.position).sub(_ap);
+      if (_dir.lengthSq() < 1e-4) _dir.set(0, 0.4, 1);
+      _dir.normalize();
+      _dir.y = Math.max(_dir.y, 0.12) + 0.3;
+      _dir.normalize();
+      _desired.copy(_ap).addScaledVector(_dir, focus.dist);
+      camera.position.lerp(_desired, 0.1);
+      controls.target.lerp(_ap, 0.15);
+      camera.lookAt(controls.target);
       positionCard(_ap);
+      // cuando ya llegó cerca, activar el modo órbita (girar alrededor)
+      if (camera.position.distanceTo(_desired) < 0.15) {
+        focus.state = "orbit";
+        controls.enabled = true;
+        controls.enablePan = false; // mantener el astro centrado
+        controls.minDistance = Math.max(0.3, focus.dist * 0.4);
+        controls.maxDistance = focus.dist * 2.2;
+        _prevAp.copy(_ap);
+      }
+    }
+  } else if (focus.state === "orbit") {
+    if (!focus.obj || !focus.obj.parent) {
+      unfocusAstro();
+    } else {
+      focus.obj.getWorldPosition(_ap);
+      // seguir al astro mientras se mueve, conservando el giro del usuario:
+      // desplazamos cámara y objetivo por el mismo delta de movimiento
+      _dir.subVectors(_ap, _prevAp);
+      camera.position.add(_dir);
+      controls.target.add(_dir);
+      _prevAp.copy(_ap);
+      controls.update(); // permite girar/acercar alrededor del astro
+      positionCard(_ap);
+    }
+  } else if (focus.state === "returning") {
+    // regresar suavemente a la vista de la galaxia centrada
+    camera.position.lerp(homePos, 0.08);
+    controls.target.lerp(homeTarget, 0.1);
+    camera.lookAt(controls.target);
+    if (camera.position.distanceTo(homePos) < 0.05) {
+      camera.position.copy(homePos);
+      controls.target.copy(homeTarget);
+      // restaurar los límites normales de exploración
+      controls.minDistance = 3;
+      controls.maxDistance = 40;
+      controls.enablePan = true;
+      controls.enabled = true;
+      focus.state = "idle";
     }
   } else {
     controls.update();
