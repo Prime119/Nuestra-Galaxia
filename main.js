@@ -485,25 +485,37 @@ function videoEmbed(url) {
 
 // Embed UNIVERSAL: sirve igual para fotos o videos de Google Drive,
 // videos de Google, YouTube, o archivos directos.
+// Respaldo: si un "video" de Drive resulta ser una foto, lo cambia por imagen completa
+window.__toImg = function (el, id) {
+  const img = document.createElement("img");
+  img.className = "media";
+  img.loading = "lazy";
+  img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+  el.replaceWith(img);
+};
+
+// Embed UNIVERSAL: fotos completas e imágenes/videos que se reproducen solos en bucle.
 function mediaEmbed(url) {
-  // YouTube
+  // YouTube (autoplay + loop, silenciado para que el navegador lo permita)
   const yt = url.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
   if (yt) {
-    return `<div class="video-wrap"><iframe src="https://www.youtube.com/embed/${yt[1]}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    const v = yt[1];
+    return `<div class="media-wrap"><iframe src="https://www.youtube.com/embed/${v}?autoplay=1&mute=1&loop=1&playlist=${v}&controls=0&playsinline=1&modestbranding=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
   }
-  // Google Drive / Google Videos: el "preview" muestra tanto fotos como videos
+  // Google Drive / Google Videos
   if (url.includes("google.com")) {
     const id = driveId(url);
     if (id) {
-      return `<div class="video-wrap"><iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe></div>`;
+      // Intenta como video en bucle; si en realidad es una foto, cae a imagen completa
+      return `<video class="media" autoplay loop muted playsinline preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.google.com/uc?export=download&id=${id}"></video>`;
     }
   }
   // Imagen directa por extensión
   if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(url)) {
-    return `<img src="${url}" loading="lazy">`;
+    return `<img class="media" src="${url}" loading="lazy">`;
   }
-  // Video directo
-  return `<video controls playsinline src="${url}"></video>`;
+  // Video/archivo directo (en bucle)
+  return `<video class="media" autoplay loop muted playsinline src="${url}"></video>`;
 }
 
 // Dibuja UN bloque de contenido (poema, imagen o video)
@@ -823,7 +835,6 @@ function animate() {
       camera.position.lerp(_desired, 0.1);
       controls.target.lerp(_ap, 0.15);
       camera.lookAt(controls.target);
-      if (focus.hasCard) positionCard(_ap);
       // cuando ya llegó cerca, activar el modo órbita (girar alrededor)
       if (camera.position.distanceTo(_desired) < 0.15) {
         focus.state = "orbit";
@@ -846,7 +857,6 @@ function animate() {
       controls.target.add(_dir);
       _prevAp.copy(_ap);
       controls.update(); // permite girar/acercar alrededor del astro
-      if (focus.hasCard) positionCard(_ap);
     }
   } else if (focus.state === "returning") {
     // regresar suavemente a la vista de la galaxia centrada
