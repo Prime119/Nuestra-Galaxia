@@ -50,6 +50,7 @@ export function buildEffects(scene) {
   const clickables = []; // estrellas fugaces que se pueden tocar
   const fugaces = CONTENT.fugaces || [];
   let fugazIdx = 0;
+  let cometMsgIdx = 0;
 
   // ---------------- COMETAS (núcleo de roca) ----------------
   const comets = [];
@@ -59,12 +60,16 @@ export function buildEffects(scene) {
     const rock = makeRock(0.04, "#8a8076");
     node.add(rock);
 
-    // área de toque para poder seleccionar el cometa
+    // área de toque: al tocar un cometa se muestra un mensaje de las 11:11
     const hit = new THREE.Mesh(
       new THREE.SphereGeometry(0.4, 10, 10),
       new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
     );
     hit.userData.cometa = true;
+    if (fugaces.length) {
+      hit.userData.astro = fugaces[cometMsgIdx % fugaces.length];
+      cometMsgIdx++;
+    }
     node.add(hit);
     clickables.push(hit);
     // coma muy tenue
