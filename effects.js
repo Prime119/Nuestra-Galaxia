@@ -58,6 +58,15 @@ export function buildEffects(scene) {
     group.add(node);
     const rock = makeRock(0.04, "#8a8076");
     node.add(rock);
+
+    // área de toque para poder seleccionar el cometa
+    const hit = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 10, 10),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+    );
+    hit.userData.cometa = true;
+    node.add(hit);
+    clickables.push(hit);
     // coma muy tenue
     const coma = new THREE.Sprite(
       new THREE.SpriteMaterial({
@@ -103,7 +112,7 @@ export function buildEffects(scene) {
       a: 6 + Math.random() * 4,
       e: 0.5 + Math.random() * 0.28,
       rot: Math.random() * TWO_PI,
-      speed: (0.18 + Math.random() * 0.16) * (Math.random() < 0.5 ? 1 : -1),
+      speed: (0.18 + Math.random() * 0.16) * 0.9 * (Math.random() < 0.5 ? 1 : -1),
       tilt: (Math.random() - 0.5) * 0.4,
       theta: Math.random() * TWO_PI,
       spin: (Math.random() - 0.5) * 1.5,

@@ -330,6 +330,8 @@ function handleTap(cx, cy) {
     spawnHeart();
   } else if (obj.userData.astro) {
     focusAstro(obj, obj.userData.astro);
+  } else if (obj.userData.cometa) {
+    focusAstro(obj, null); // los cometas se pueden enfocar (sin tarjeta)
   }
 }
 
@@ -337,7 +339,43 @@ function handleTap(cx, cy) {
 const card = document.getElementById("astro-card");
 const cardTitle = document.getElementById("astro-card-title");
 const cardBody = document.getElementById("astro-card-body");
+const heartWords = document.getElementById("heart-words");
 document.getElementById("astro-card-close").addEventListener("click", unfocusAstro);
+
+// Decoraciones (estrellas doradas/plateadas, flores y corazones) en los bordes
+const DECOS = [
+  '<span style="color:#ffd86b">★</span>',
+  '<span style="color:#e3e9f5">★</span>',
+  '<span style="color:#ffd86b">✦</span>',
+  '<span style="color:#e3e9f5">✧</span>',
+  "🌸", "🌺", "🌼", "🌷", "💗", "💖", "🩷", "💛",
+];
+
+function clearDecos() {
+  card.querySelectorAll(".card-deco").forEach((d) => d.remove());
+}
+
+function decorateCard() {
+  clearDecos();
+  const N = 11;
+  for (let i = 0; i < N; i++) {
+    const edge = i % 4;
+    const p = 4 + Math.random() * 90; // a lo largo del borde (%)
+    const off = (-15 + Math.random() * 7) + "px"; // un poco fuera del borde
+    let style = "";
+    if (edge === 0) style = `top:${off}; left:${p}%;`;
+    else if (edge === 1) style = `bottom:${off}; left:${p}%;`;
+    else if (edge === 2) style = `left:${off}; top:${p}%;`;
+    else style = `right:${off}; top:${p}%;`;
+    const el = document.createElement("span");
+    el.className = "card-deco";
+    el.style.cssText = style;
+    el.style.animationDelay = (Math.random() * 1.6) + "s";
+    el.style.fontSize = (12 + Math.random() * 9) + "px";
+    el.innerHTML = DECOS[Math.floor(Math.random() * DECOS.length)];
+    card.appendChild(el);
+  }
+}
 
 // Estados: "idle" (galaxia) | "approaching" (acercándose) | "orbit" (girando
 // alrededor del astro) | "returning" (regresando a la galaxia centrada)
@@ -361,10 +399,11 @@ function focusAstro(hitObj, astro) {
   // distancia de acercamiento inicial (luego el usuario puede acercar/alejar).
   // los sistemas solares necesitan algo más de distancia para ver sus planetas.
   focus.dist = astro && astro.planetas ? 2.6 : 0.9;
+  focus.hasCard = !!(astro && astro.contenido);
   hitObj.getWorldPosition(_prevAp);
   focus.state = "approaching";
   controls.enabled = false; // durante el acercamiento movemos la cámara a mano
-  openCard(astro);
+  if (focus.hasCard) openCard(astro);
 }
 
 function unfocusAstro() {
@@ -378,6 +417,7 @@ function unfocusAstro() {
 function openCard(astro) {
   cardTitle.textContent = astro.titulo || "";
   cardBody.innerHTML = buildContentHTML(astro);
+  decorateCard();
   card.classList.remove("show"); // estado inicial: pequeño, dentro del astro
   void card.offsetWidth; // forzar reflow
   // emerge tras un instante (cuando la cámara ya se acercó)
@@ -392,6 +432,7 @@ function hideCard() {
   card.classList.remove("show");
   card.style.visibility = "";
   cardBody.innerHTML = "";
+  clearDecos();
 }
 
 function positionCard(worldPos) {
@@ -442,6 +483,29 @@ function videoEmbed(url) {
   return `<video controls playsinline src="${url}"></video>`;
 }
 
+// Embed UNIVERSAL: sirve igual para fotos o videos de Google Drive,
+// videos de Google, YouTube, o archivos directos.
+function mediaEmbed(url) {
+  // YouTube
+  const yt = url.match(/(?:youtu\.be\/|v=)([\w-]{11})/);
+  if (yt) {
+    return `<div class="video-wrap"><iframe src="https://www.youtube.com/embed/${yt[1]}" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+  }
+  // Google Drive / Google Videos: el "preview" muestra tanto fotos como videos
+  if (url.includes("google.com")) {
+    const id = driveId(url);
+    if (id) {
+      return `<div class="video-wrap"><iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe></div>`;
+    }
+  }
+  // Imagen directa por extensión
+  if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(url)) {
+    return `<img src="${url}" loading="lazy">`;
+  }
+  // Video directo
+  return `<video controls playsinline src="${url}"></video>`;
+}
+
 // Dibuja UN bloque de contenido (poema, imagen o video)
 function renderBlock(c, astro) {
   if (!c) return "";
@@ -453,6 +517,8 @@ function renderBlock(c, astro) {
       : `<div class="empty">Aún no has puesto una imagen aquí.</div>`;
   } else if (c.tipo === "video") {
     return c.url ? videoEmbed(c.url) : `<div class="empty">Aún no has puesto un video aquí.</div>`;
+  } else if (c.tipo === "media") {
+    return c.url ? mediaEmbed(c.url) : `<div class="empty">Aún no has puesto nada aquí.</div>`;
   }
   return "";
 }
@@ -657,6 +723,15 @@ function updateHearts(elapsed) {
     const age = elapsed - h.born;
     const pos = h.obj.geometry.attributes.position.array;
 
+    // Palabras "Te amo / Preciosa Hermosa" centradas sobre el corazón
+    _proj.set(h.center.x, h.center.y + 1.9, h.center.z).project(camera);
+    if (_proj.z < 1) {
+      heartWords.style.left = (_proj.x * 0.5 + 0.5) * window.innerWidth + "px";
+      heartWords.style.top = (-_proj.y * 0.5 + 0.5) * window.innerHeight + "px";
+    }
+    if (age < boomStart) heartWords.classList.add("show");
+    else heartWords.classList.remove("show");
+
     if (age < boomStart) {
       // formación: suben del centro y forman el corazón arriba; luego se mantiene
       for (let j = 0; j < h.n; j++) {
@@ -693,6 +768,7 @@ function updateHearts(elapsed) {
       hearts.splice(i, 1);
     }
   }
+  if (hearts.length === 0) heartWords.classList.remove("show");
 }
 
 
@@ -747,7 +823,7 @@ function animate() {
       camera.position.lerp(_desired, 0.1);
       controls.target.lerp(_ap, 0.15);
       camera.lookAt(controls.target);
-      positionCard(_ap);
+      if (focus.hasCard) positionCard(_ap);
       // cuando ya llegó cerca, activar el modo órbita (girar alrededor)
       if (camera.position.distanceTo(_desired) < 0.15) {
         focus.state = "orbit";
@@ -770,7 +846,7 @@ function animate() {
       controls.target.add(_dir);
       _prevAp.copy(_ap);
       controls.update(); // permite girar/acercar alrededor del astro
-      positionCard(_ap);
+      if (focus.hasCard) positionCard(_ap);
     }
   } else if (focus.state === "returning") {
     // regresar suavemente a la vista de la galaxia centrada
