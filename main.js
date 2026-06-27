@@ -384,6 +384,7 @@ const _ap = new THREE.Vector3();
 const _prevAp = new THREE.Vector3();
 const _desired = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _tgt = new THREE.Vector3();
 const _proj = new THREE.Vector3();
 // vista de la galaxia guardada para poder regresar a ella
 const homePos = new THREE.Vector3();
@@ -400,6 +401,9 @@ function focusAstro(hitObj, astro) {
   // los sistemas solares necesitan algo más de distancia para ver sus planetas.
   focus.dist = astro && astro.planetas ? 2.6 : 0.9;
   focus.hasCard = !!(astro && astro.contenido);
+  // baja el objetivo de la cámara para que el astro quede en la zona de ARRIBA
+  // (sobre la tarjeta), no detrás de ella.
+  focus.targetOffsetY = focus.hasCard ? -0.32 * focus.dist : 0;
   hitObj.getWorldPosition(_prevAp);
   focus.state = "approaching";
   controls.enabled = false; // durante el acercamiento movemos la cámara a mano
@@ -418,13 +422,34 @@ function openCard(astro) {
   cardTitle.textContent = astro.titulo || "";
   cardBody.innerHTML = buildContentHTML(astro);
   decorateCard();
+  playCardVideos();
   card.classList.remove("show"); // estado inicial: pequeño, dentro del astro
   void card.offsetWidth; // forzar reflow
   // emerge tras un instante (cuando la cámara ya se acercó)
   clearTimeout(card._t);
   card._t = setTimeout(() => {
     if (focus.state === "approaching" || focus.state === "orbit") card.classList.add("show");
+    playCardVideos();
   }, 320);
+}
+
+// Fuerza que los videos de la carta se reproduzcan (silenciados) y en bucle
+function playCardVideos() {
+  cardBody.querySelectorAll("video").forEach((v) => {
+    v.muted = true;
+    v.loop = true;
+    v.setAttribute("playsinline", "");
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {});
+    v.addEventListener(
+      "canplay",
+      () => {
+        const q = v.play();
+        if (q && q.catch) q.catch(() => {});
+      },
+      { once: true }
+    );
+  });
 }
 
 function hideCard() {
@@ -507,7 +532,7 @@ function mediaEmbed(url) {
     const id = driveId(url);
     if (id) {
       // Intenta como video en bucle; si en realidad es una foto, cae a imagen completa
-      return `<video class="media" autoplay loop muted playsinline preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.google.com/uc?export=download&id=${id}"></video>`;
+      return `<video class="media" autoplay loop muted playsinline webkit-playsinline preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"></video>`;
     }
   }
   // Imagen directa por extensión
@@ -825,15 +850,18 @@ function animate() {
       controls.update();
     } else {
       focus.obj.getWorldPosition(_ap);
-      // dirección desde el astro hacia la cámara, un poco elevada
-      _dir.copy(camera.position).sub(_ap);
+      // objetivo desplazado hacia abajo => el astro queda en la parte de arriba
+      _tgt.copy(_ap);
+      _tgt.y += focus.targetOffsetY;
+      // dirección desde el objetivo hacia la cámara, un poco elevada
+      _dir.copy(camera.position).sub(_tgt);
       if (_dir.lengthSq() < 1e-4) _dir.set(0, 0.4, 1);
       _dir.normalize();
       _dir.y = Math.max(_dir.y, 0.12) + 0.3;
       _dir.normalize();
-      _desired.copy(_ap).addScaledVector(_dir, focus.dist);
+      _desired.copy(_tgt).addScaledVector(_dir, focus.dist);
       camera.position.lerp(_desired, 0.1);
-      controls.target.lerp(_ap, 0.15);
+      controls.target.lerp(_tgt, 0.15);
       camera.lookAt(controls.target);
       // cuando ya llegó cerca, activar el modo órbita (girar alrededor)
       if (camera.position.distanceTo(_desired) < 0.15) {
