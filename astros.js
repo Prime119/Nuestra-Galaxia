@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CONTENT } from "./content.js";
+import { CONTENT } from "./content.js?v=6";
 
 /* ============================================================
    ASTROS pequeños (tamaño de estrella):
