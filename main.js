@@ -542,8 +542,9 @@ function mediaEmbed(url) {
   if (url.includes("google.com")) {
     const id = driveId(url);
     if (id) {
-      // Intenta como video en bucle; si en realidad es una foto, cae a imagen completa
-      return `<video class="media" autoplay loop muted playsinline webkit-playsinline preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"></video>`;
+      // Intenta como video en bucle; si en realidad es una foto, cae a imagen completa.
+      // Lleva controles para poder darle play manualmente si el navegador bloquea el autoplay.
+      return `<video class="media" autoplay loop muted playsinline webkit-playsinline controls preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"></video>`;
     }
   }
   // Imagen directa por extensión
@@ -551,7 +552,7 @@ function mediaEmbed(url) {
     return `<img class="media" src="${url}" loading="lazy">`;
   }
   // Video/archivo directo (en bucle)
-  return `<video class="media" autoplay loop muted playsinline src="${url}"></video>`;
+  return `<video class="media" autoplay loop muted playsinline controls src="${url}"></video>`;
 }
 
 // Dibuja UN bloque de contenido (poema, imagen o video)

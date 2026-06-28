@@ -2,7 +2,7 @@
    - Archivos de la app: PRIMERO la red (para ver siempre lo más nuevo),
      y si no hay internet, lo guardado.
    - Librerías, fuentes, fotos y videos: PRIMERO lo guardado (no cambian). */
-const CACHE = "galaxia-v4";
+const CACHE = "galaxia-v5";
 
 const CORE = [
   "./",
