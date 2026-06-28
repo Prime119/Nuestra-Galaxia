@@ -3,8 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { buildAstros } from "./astros.js?v=6";
-import { buildEffects } from "./effects.js?v=6";
+import { buildAstros } from "./astros.js";
+import { buildEffects } from "./effects.js";
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
@@ -403,7 +403,7 @@ function focusAstro(hitObj, astro) {
   focus.hasCard = !!(astro && astro.contenido);
   // baja el objetivo de la cámara para que el astro quede en la zona de ARRIBA
   // (sobre la tarjeta), no detrás de ella.
-  focus.targetOffsetY = focus.hasCard ? -0.5 * focus.dist : 0;
+  focus.targetOffsetY = focus.hasCard ? -0.32 * focus.dist : 0;
   hitObj.getWorldPosition(_prevAp);
   focus.state = "approaching";
   controls.enabled = false; // durante el acercamiento movemos la cámara a mano
@@ -437,29 +437,32 @@ function openCard(astro) {
 function playCardVideos() {
   cardBody.querySelectorAll("video").forEach((v) => {
     v.muted = true;
-    v.defaultMuted = true;
     v.loop = true;
-    v.setAttribute("muted", "");
     v.setAttribute("playsinline", "");
-    v.setAttribute("webkit-playsinline", "");
-    const tryPlay = () => {
-      v.muted = true;
-      const p = v.play();
-      if (p && p.catch) p.catch(() => {});
-    };
-    tryPlay();
-    ["loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((ev) =>
-      v.addEventListener(ev, tryPlay)
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {});
+    v.addEventListener(
+      "canplay",
+      () => {
+        const q = v.play();
+        if (q && q.catch) q.catch(() => {});
+      },
+      { once: true }
     );
-    // si se llega a pausar o terminar, reinicia y vuelve a reproducir
-    v.addEventListener("ended", () => {
-      v.currentTime = 0;
-      tryPlay();
-    });
-    v.addEventListener("pause", () => {
-      // re-intenta salvo que el usuario realmente lo haya quitado de pantalla
-      if (focus.state === "orbit" || focus.state === "approaching") setTimeout(tryPlay, 60);
-    });
+
+    // Vigilante: a veces Drive bloquea el video grande sin disparar "error"
+    // (se queda cargando para siempre). Si en unos segundos no logró arrancar
+    // ni tiene datos suficientes, lo tratamos como fallo y mostramos el
+    // reproductor real de Drive en su lugar.
+    const driveId = v.dataset.driveId;
+    if (driveId) {
+      setTimeout(() => {
+        if (!v.isConnected) return; // la carta ya se cerró/cambió
+        if (v.readyState < 2 && v.currentTime === 0) {
+          window.__toFallback(v, driveId);
+        }
+      }, 7000);
+    }
   });
 }
 
@@ -521,13 +524,24 @@ function videoEmbed(url) {
 
 // Embed UNIVERSAL: sirve igual para fotos o videos de Google Drive,
 // videos de Google, YouTube, o archivos directos.
-// Respaldo: si un "video" de Drive resulta ser una foto, lo cambia por imagen completa
-window.__toImg = function (el, id) {
-  const img = document.createElement("img");
-  img.className = "media";
-  img.loading = "lazy";
-  img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
-  el.replaceWith(img);
+//
+// Respaldo inteligente: antes, si la descarga directa de Drive fallaba
+// (algo MUY común con videos grandes, porque Drive bloquea su streaming
+// directo con una pantalla de "no se puede escanear por virus"), el código
+// caía a una FOTO FIJA (el thumbnail). Por eso algunos videos "no se veían"
+// o "no se reproducían": en realidad se mostraba una imagen congelada.
+//
+// Ahora, si la carga directa falla, usamos el reproductor incrustado
+// OFICIAL de Drive (la misma vista de "preview"), que SÍ transmite el
+// video real sin importar el tamaño del archivo. Esto sirve igual de bien
+// si el archivo en realidad es una foto.
+window.__toFallback = function (el, id) {
+  if (!el || el.dataset.fallbackDone) return; // evita bucles si ya se aplicó
+  el.dataset.fallbackDone = "1";
+  const wrap = document.createElement("div");
+  wrap.className = "media-wrap";
+  wrap.innerHTML = `<iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe>`;
+  el.replaceWith(wrap);
 };
 
 // Embed UNIVERSAL: fotos completas e imágenes/videos que se reproducen solos en bucle.
@@ -542,9 +556,9 @@ function mediaEmbed(url) {
   if (url.includes("google.com")) {
     const id = driveId(url);
     if (id) {
-      // Intenta como video en bucle; si en realidad es una foto, cae a imagen completa.
-      // Lleva controles para poder darle play manualmente si el navegador bloquea el autoplay.
-      return `<video class="media" autoplay loop muted playsinline webkit-playsinline controls preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"></video>`;
+      // Intenta como video en bucle; si Drive bloquea el streaming directo
+      // (videos grandes), cae al reproductor incrustado real de Drive.
+      return `<video class="media" data-drive-id="${id}" autoplay loop muted playsinline webkit-playsinline preload="auto" onerror="window.__toFallback(this,'${id}')" src="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"></video>`;
     }
   }
   // Imagen directa por extensión
@@ -552,7 +566,7 @@ function mediaEmbed(url) {
     return `<img class="media" src="${url}" loading="lazy">`;
   }
   // Video/archivo directo (en bucle)
-  return `<video class="media" autoplay loop muted playsinline controls src="${url}"></video>`;
+  return `<video class="media" autoplay loop muted playsinline src="${url}"></video>`;
 }
 
 // Dibuja UN bloque de contenido (poema, imagen o video)
