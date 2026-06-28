@@ -422,7 +422,9 @@ html, body {
   border: 0;
 }
 
-/* Reproductor de Google Drive (videos y fotos) — alto para verticales */
+/* Reproductor de Google Drive (videos y fotos) — alto para verticales.
+   Truco: renderizamos el iframe a un ancho tipo "escritorio" y lo encogemos
+   para que en el celular muestre los controles grandes de la version de PC. */
 .astro-card-body .drive-frame,
 .modal-body .drive-frame {
   position: relative;
@@ -436,9 +438,12 @@ html, body {
 .astro-card-body .drive-frame iframe,
 .modal-body .drive-frame iframe {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  width: 167%;
+  height: 167%;
+  transform: scale(0.599);
+  transform-origin: top left;
   border: 0;
 }
 
