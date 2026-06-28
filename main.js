@@ -3,8 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { buildAstros } from "./astros.js?v=7";
-import { buildEffects } from "./effects.js?v=7";
+import { buildAstros } from "./astros.js?v=8";
+import { buildEffects } from "./effects.js?v=8";
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
@@ -439,6 +439,7 @@ function playCardVideos() {
     v.muted = true;
     v.loop = true;
     v.setAttribute("playsinline", "");
+    setupVideoControls(v);
     const p = v.play();
     if (p && p.catch) p.catch(() => {});
     v.addEventListener(
@@ -472,6 +473,74 @@ function hideCard() {
   card.style.visibility = "";
   cardBody.innerHTML = "";
   clearDecos();
+}
+
+// Controles propios y minimalistas para los videos que se reproducen en
+// NUESTRO reproductor: solo play/pausa, atrasar 10s, adelantar 10s y tiempo.
+// (Quedan DEBAJO del video para no estorbar la visualizacion.)
+function setupVideoControls(v) {
+  if (v.dataset.cc) return; // ya tiene controles
+  v.dataset.cc = "1";
+  v.removeAttribute("controls");
+
+  const wrap = document.createElement("div");
+  wrap.className = "vplayer";
+  v.parentNode.insertBefore(wrap, v);
+  wrap.appendChild(v);
+
+  const bar = document.createElement("div");
+  bar.className = "vbar";
+  bar.innerHTML =
+    '<button type="button" class="vb-btn vb-back" aria-label="Atrasar 10 segundos">«10</button>' +
+    '<button type="button" class="vb-btn vb-play" aria-label="Reproducir o pausar">►</button>' +
+    '<button type="button" class="vb-btn vb-fwd" aria-label="Adelantar 10 segundos">10»</button>' +
+    '<input type="range" class="vb-seek" min="0" max="1000" value="0" aria-label="Avance del video">' +
+    '<span class="vb-time">0:00 / 0:00</span>';
+  wrap.appendChild(bar);
+
+  const playBtn = bar.querySelector(".vb-play");
+  const seek = bar.querySelector(".vb-seek");
+  const timeEl = bar.querySelector(".vb-time");
+  let seeking = false;
+
+  const fmt = (t) => {
+    t = Math.max(0, Math.floor(t || 0));
+    const m = Math.floor(t / 60);
+    const s = t % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  };
+  const sync = () => {
+    playBtn.textContent = v.paused ? "►" : "❚❚";
+  };
+
+  playBtn.addEventListener("click", () => {
+    if (v.paused) {
+      const p = v.play();
+      if (p && p.catch) p.catch(() => {});
+    } else {
+      v.pause();
+    }
+  });
+  bar.querySelector(".vb-back").addEventListener("click", () => {
+    v.currentTime = Math.max(0, v.currentTime - 10);
+  });
+  bar.querySelector(".vb-fwd").addEventListener("click", () => {
+    v.currentTime = Math.min(v.duration || 0, v.currentTime + 10);
+  });
+  v.addEventListener("play", sync);
+  v.addEventListener("pause", sync);
+  v.addEventListener("timeupdate", () => {
+    if (!seeking && v.duration) seek.value = String((v.currentTime / v.duration) * 1000);
+    timeEl.textContent = fmt(v.currentTime) + " / " + fmt(v.duration);
+  });
+  seek.addEventListener("input", () => {
+    seeking = true;
+  });
+  seek.addEventListener("change", () => {
+    if (v.duration) v.currentTime = (Number(seek.value) / 1000) * v.duration;
+    seeking = false;
+  });
+  sync();
 }
 
 function positionCard(worldPos) {
@@ -541,7 +610,8 @@ window.__toFallback = function (el, id) {
   const wrap = document.createElement("div");
   wrap.className = "drive-frame";
   wrap.innerHTML = `<iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe>`;
-  el.replaceWith(wrap);
+  const target = el.closest(".vplayer") || el;
+  target.replaceWith(wrap);
 };
 
 // Embed UNIVERSAL: fotos completas e imágenes/videos que se reproducen solos en bucle.

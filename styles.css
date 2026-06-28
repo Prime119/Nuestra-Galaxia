@@ -441,3 +441,50 @@ html, body {
   height: 100%;
   border: 0;
 }
+
+
+
+/* ===== Reproductor propio de video (controles minimos debajo del video) ===== */
+.astro-card-body .vplayer,
+.modal-body .vplayer {
+  width: 100%;
+}
+
+.vbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px 2px;
+}
+
+.vb-btn {
+  background: rgba(42, 35, 80, 0.08);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  color: #2a2350;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.vb-btn:active {
+  background: rgba(42, 35, 80, 0.2);
+}
+
+.vb-seek {
+  flex: 1;
+  height: 4px;
+  accent-color: #b14a86;
+  cursor: pointer;
+}
+
+.vb-time {
+  font-size: 11px;
+  color: #6a6a80;
+  min-width: 80px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
