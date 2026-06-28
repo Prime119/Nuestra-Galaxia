@@ -421,3 +421,23 @@ html, body {
   height: 100%;
   border: 0;
 }
+
+/* Reproductor de Google Drive (videos y fotos) — alto para verticales */
+.astro-card-body .drive-frame,
+.modal-body .drive-frame {
+  position: relative;
+  width: 100%;
+  height: 48vh;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0a14;
+}
+
+.astro-card-body .drive-frame iframe,
+.modal-body .drive-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}

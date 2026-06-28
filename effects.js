@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CONTENT } from "./content.js?v=6";
+import { CONTENT } from "./content.js?v=7";
 
 /* ============================================================
    EFECTOS del espacio (decorativos, no clickeables):

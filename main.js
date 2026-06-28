@@ -3,8 +3,8 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { buildAstros } from "./astros.js?v=6";
-import { buildEffects } from "./effects.js?v=6";
+import { buildAstros } from "./astros.js?v=7";
+import { buildEffects } from "./effects.js?v=7";
 
 /* ============================================================
    NUESTRA GALAXIA — base visual
@@ -538,13 +538,12 @@ function mediaEmbed(url) {
     const v = yt[1];
     return `<div class="media-wrap"><iframe src="https://www.youtube.com/embed/${v}?autoplay=1&mute=1&loop=1&playlist=${v}&controls=0&playsinline=1&modestbranding=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>`;
   }
-  // Google Drive / Google Videos
+  // Google Drive / Google Videos: el reproductor de Google reproduce CUALQUIER
+  // video (de cualquier tamaño, con un toque) y también muestra las fotos.
   if (url.includes("google.com")) {
     const id = driveId(url);
     if (id) {
-      // Intenta como video en bucle; si en realidad es una foto, cae a imagen completa.
-      // Lleva controles para poder darle play manualmente si el navegador bloquea el autoplay.
-      return `<video class="media" autoplay loop muted playsinline webkit-playsinline controls preload="auto" onerror="window.__toImg(this,'${id}')" src="https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t"></video>`;
+      return `<div class="drive-frame"><iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay; fullscreen" allowfullscreen></iframe></div>`;
     }
   }
   // Imagen directa por extensión
