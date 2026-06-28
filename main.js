@@ -403,7 +403,7 @@ function focusAstro(hitObj, astro) {
   focus.hasCard = !!(astro && astro.contenido);
   // baja el objetivo de la cámara para que el astro quede en la zona de ARRIBA
   // (sobre la tarjeta), no detrás de ella.
-  focus.targetOffsetY = focus.hasCard ? -0.32 * focus.dist : 0;
+  focus.targetOffsetY = focus.hasCard ? -0.5 * focus.dist : 0;
   hitObj.getWorldPosition(_prevAp);
   focus.state = "approaching";
   controls.enabled = false; // durante el acercamiento movemos la cámara a mano
@@ -437,18 +437,29 @@ function openCard(astro) {
 function playCardVideos() {
   cardBody.querySelectorAll("video").forEach((v) => {
     v.muted = true;
+    v.defaultMuted = true;
     v.loop = true;
+    v.setAttribute("muted", "");
     v.setAttribute("playsinline", "");
-    const p = v.play();
-    if (p && p.catch) p.catch(() => {});
-    v.addEventListener(
-      "canplay",
-      () => {
-        const q = v.play();
-        if (q && q.catch) q.catch(() => {});
-      },
-      { once: true }
+    v.setAttribute("webkit-playsinline", "");
+    const tryPlay = () => {
+      v.muted = true;
+      const p = v.play();
+      if (p && p.catch) p.catch(() => {});
+    };
+    tryPlay();
+    ["loadedmetadata", "loadeddata", "canplay", "canplaythrough"].forEach((ev) =>
+      v.addEventListener(ev, tryPlay)
     );
+    // si se llega a pausar o terminar, reinicia y vuelve a reproducir
+    v.addEventListener("ended", () => {
+      v.currentTime = 0;
+      tryPlay();
+    });
+    v.addEventListener("pause", () => {
+      // re-intenta salvo que el usuario realmente lo haya quitado de pantalla
+      if (focus.state === "orbit" || focus.state === "approaching") setTimeout(tryPlay, 60);
+    });
   });
 }
 
